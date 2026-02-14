@@ -1,5 +1,6 @@
 import { srvConnect, Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
+import { renderBoard } from "./boardRenderer.ts"
 
 // Game input types (currently placeholder)
 type Q = "Placeholder"
@@ -129,8 +130,8 @@ function uiQuestion (q: Question<Q>) {
 
 
 function uiUpdate(state: StateView) {
-  // Update board display
-  gui.board.textContent = "Board: " + JSON.stringify(state.board)
+  // Update board display using hex-grid renderer
+  renderBoard(gui.board, state.board)
 
   // Update players display
   gui.players.innerHTML = "<h3>Players:</h3>"

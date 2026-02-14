@@ -1,3 +1,6 @@
 [submodule "KOI"]
 	path = KOI
 	url = https://github.com/yav/KOI
+[submodule "hex-grid"]
+	path = hex-grid
+	url = https://github.com/yav/hex-grid
