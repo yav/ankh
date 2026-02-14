@@ -16,6 +16,9 @@ main = startApp App
   , appInitialState = \_rng _opts ps ->
       pure State
         { stateBoard = Board
+            { boardHexes = Map.empty
+            , boardRegions = Map.empty
+            }
         , statePlayers = Map.fromList [ (p, PlayerState) | p <- ps ]
         }
   , appStart = gameLoop

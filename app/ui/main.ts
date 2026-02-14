@@ -1,7 +1,9 @@
 import { srvConnect, Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
 
-type Q = any // Update this with actual game input types
+// Game input types (currently placeholder)
+type Q = "Placeholder"
+
 type GUI = {
   board: HTMLElement,
   players: HTMLElement,
@@ -9,7 +11,44 @@ type GUI = {
   questions: HTMLElement[]
 }
 
-type Board = {}
+// Hexagonal coordinate system
+type HexPos = {
+  q: number,  // column
+  r: number   // row
+}
+
+// Terrain types
+type Terrain = "desert" | "grass" | "water"
+
+// Guardian type (currently empty in server)
+type GuardianType = {}
+
+// Player piece types
+type PlayerPieceType =
+  | "god"
+  | "soldier"
+  | { tag: "guardian", contents: GuardianType }
+
+// Structure types
+type StructureType = "temple" | "obelisk" | "pyramid"
+
+// Game pieces
+type Piece =
+  | { tag: "PlayerPiece", player: PlayerId, pieceType: PlayerPieceType }
+  | { tag: "Structure", structureType: StructureType }
+
+// Individual hex on the board
+type Hex = {
+  terrain: Terrain,
+  pieces: Piece[]
+}
+
+// Game board with hexagonal grid
+type Board = {
+  hexes: { [key: string]: Hex },      // Key format: "q,r"
+  regions: { [key: string]: HexPos[] } // Key is region ID
+}
+
 type PlayerState = {}
 type PlayerId = string
 
