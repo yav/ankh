@@ -7,25 +7,25 @@ import KOI.Basics (PlayerId)
 data Piece
   = PlayerPiece PlayerId PlayerPieceType
   | Structure StructureType
-  deriving (Eq, Ord, Read, Show)
+  deriving (Read, Show)
 
 -- | Types of player pieces
 data PlayerPieceType
   = God
   | Soldier
   | Guardian GuardianType
-  deriving (Eq, Ord, Read, Show)
+  deriving (Read, Show)
 
 -- | Types of structures
 data StructureType
   = Temple
   | Obelisk
   | Pyramid
-  deriving (Eq, Ord, Read, Show)
+  deriving (Read, Show)
 
 -- | Placeholder for guardian types
 data GuardianType = GuardianType
-  deriving (Eq, Ord, Read, Show)
+  deriving (Read, Show)
 
 -- JSON instances
 instance JS.ToJSON GuardianType where
