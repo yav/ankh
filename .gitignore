@@ -16,8 +16,8 @@ dist-ssr
 *.local
 
 # Build outputs (server - Haskell/Cabal)
-server/dist-newstyle
-server/ui
+dist-newstyle
+/ui
 
 # Editor directories and files
 .vscode/*
@@ -29,3 +29,4 @@ server/ui
 *.njsproj
 *.sln
 *.sw?
+*.swp

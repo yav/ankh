@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR/server"
+cd "$SCRIPT_DIR"
 
 # Function to cleanup background processes on exit
 cleanup() {
