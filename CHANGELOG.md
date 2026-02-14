@@ -1,4 +1,4 @@
-# Revision history for server
+# Revision history for ankh
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

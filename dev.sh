@@ -41,7 +41,7 @@ echo -e "${GREEN}Building Haskell server...${NC}"
 cabal build
 
 echo -e "${GREEN}Starting server...${NC}"
-SERVER_BIN=$(cabal list-bin server)
+SERVER_BIN=$(cabal list-bin ankh)
 $SERVER_BIN --player guest &
 SERVER_PID=$!
 

@@ -1,5 +1,5 @@
 cabal-version:   3.0
-name:            server
+name:            ankh
 version:         0.1.0.0
 license:         NONE
 author:          Iavor S. Diatchki
@@ -16,7 +16,7 @@ common settings
                         TypeFamilies,
                         OverloadedStrings
 
-executable server
+executable ankh
     import:           settings
     main-is:          Main.hs
     other-modules:    App.KOI,

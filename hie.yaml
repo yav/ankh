@@ -1,6 +1,6 @@
 cradle:
   cabal:
     - path: "./app"
-      component: "exe:server"
+      component: "exe:ankh"
     - path: "./KOI/src"
       component: "lib:KOI"
