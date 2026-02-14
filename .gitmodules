@@ -1,0 +1,3 @@
+[submodule "KOI"]
+	path = server/KOI
+	url = https://github.com/yav/KOI

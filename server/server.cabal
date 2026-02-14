@@ -1,0 +1,19 @@
+cabal-version:   3.0
+name:            server
+version:         0.1.0.0
+license:         NONE
+author:          Iavor S. Diatchki
+maintainer:      iavor.diatchki@gmail.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common settings
+    ghc-options: -Wall
+
+executable server
+    import:           settings
+    main-is:          Main.hs
+    build-depends:    base ^>=4.19.2.0,
+                      KOI
+    hs-source-dirs:   app
+    default-language: Haskell2010
