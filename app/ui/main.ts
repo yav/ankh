@@ -1,15 +1,25 @@
 import { srvConnect, Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
 
-type Q = "Inc" | "Dec"
+type Q = any // Update this with actual game input types
 type GUI = {
-  counter: HTMLElement,
+  board: HTMLElement,
+  players: HTMLElement,
   question: HTMLElement,
   questions: HTMLElement[]
 }
 
+type Board = {}
+type PlayerState = {}
+type PlayerId = string
+
+type StateView = {
+  board: Board,
+  players: [PlayerId, PlayerState][]
+}
+
 type GameState = {
-  game: string,
+  game: StateView,
   questions: [string, Question<Q>[]]
 }
 
@@ -31,7 +41,8 @@ function main () {
 function uiRedraw (state: GameState) {
 
   gui = {
-    counter: uiFromTemplate("template-counter"),
+    board: uiFromTemplate("template-board"),
+    players: uiFromTemplate("template-players"),
     question: uiFromTemplate("template-question"),
     questions: []
   }
@@ -40,8 +51,8 @@ function uiRedraw (state: GameState) {
   if (body == null) { throw new Error("Failed to find the body") }
 
   body.innerHTML = ""
-  gui.counter.textContent = "?"
-  body.appendChild(gui.counter)
+  body.appendChild(gui.board)
+  body.appendChild(gui.players)
   body.appendChild(gui.question)
   uiUpdate(state.game)
   conn.uiQuestions(state.questions)
@@ -73,13 +84,20 @@ function uiQuestion (q: Question<Q>) {
     gui.questions.push(dom)
   }
 
-  switch(q.chChoice) {
-    case "Inc": return btn("inc")
-    case "Dec": return btn("dec")
-  }
+  // Display the help text for the choice
+  btn(q.chHelp)
 }
 
 
-function uiUpdate(newS: string) {
-  gui.counter.textContent = newS
+function uiUpdate(state: StateView) {
+  // Update board display
+  gui.board.textContent = "Board: " + JSON.stringify(state.board)
+
+  // Update players display
+  gui.players.innerHTML = "<h3>Players:</h3>"
+  for (const [playerId, playerState] of state.players) {
+    const playerDiv = document.createElement("div")
+    playerDiv.textContent = `${playerId}: ${JSON.stringify(playerState)}`
+    gui.players.appendChild(playerDiv)
+  }
 }
