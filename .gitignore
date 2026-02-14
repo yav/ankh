@@ -17,6 +17,7 @@ dist-ssr
 
 # Build outputs (server - Haskell/Cabal)
 server/dist-newstyle
+server/ui
 
 # Editor directories and files
 .vscode/*
