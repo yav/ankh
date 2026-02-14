@@ -2,7 +2,7 @@ module Main where
 
 import App.KOI
 import App.State
-import App.Board
+import App.DefaultBoard
 import App.PlayerState
 import App.Input
 import qualified Data.Map as Map
@@ -15,10 +15,7 @@ main = startApp App
   , appJS = []
   , appInitialState = \_rng _opts ps ->
       pure State
-        { stateBoard = Board
-            { boardHexes = Map.empty
-            , boardRegions = Map.empty
-            }
+        { stateBoard = defaultBoard
         , statePlayers = Map.fromList [ (p, PlayerState) | p <- ps ]
         }
   , appStart = gameLoop
