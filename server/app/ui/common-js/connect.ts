@@ -5,8 +5,14 @@ type Question<Q> = {
   chStateName: number
 }
 
+type ServerMessage<S, U, Q> =
+  | { tag: "CurGameState", contents: S }
+  | { tag: "SetQuestion", contents: string }
+  | { tag: "AskQuestions", contents: [string, Question<Q>[]] }
+  | { tag: "GameUpdate", contents: U }
+
 export
-type CallBacks<S,U,Q> = {
+type Callbacks<S,U,Q> = {
   uiRedraw: (s: S) => void,
   uiSetQuestion: (q: string) => void,
   uiQuestion: (q: Question<Q>) => void,
@@ -21,17 +27,24 @@ type Connection<Q> = {
 }
 
 export
-function srvConnect<S,U,Q>(fun: CallBacks<S,U,Q>): Connection<Q> {
+function srvConnect<S,U,Q>(fun: Callbacks<S,U,Q>): Connection<Q> {
     const obj = new URL(window.location.href)
     const info = obj.searchParams
-    const url = 'ws://' + obj.host + '/ws'
+    const protocol = obj.protocol === 'https:' ? 'wss://' : 'ws://'
+    const url = protocol + obj.host + '/ws'
     console.log("Connecting to: " + url)
     const ws = new WebSocket(url)
 
     const playerId = info.get('player')
-    function sendJSON(obj: object) { ws.send(JSON.stringify(obj)) }
+    function sendJSON(obj: object) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(obj))
+      } else {
+        console.error('WebSocket is not open. Current state:', ws.readyState)
+      }
+    }
 
-    ws.onopen = (e) => {
+    ws.onopen = () => {
       console.log('Connected.')
       console.log('We are player: ' + playerId)
       ws.send(playerId ? playerId : "guest")
@@ -39,7 +52,7 @@ function srvConnect<S,U,Q>(fun: CallBacks<S,U,Q>): Connection<Q> {
     }
 
     ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data)
+      const msg = JSON.parse(e.data) as ServerMessage<S, U, Q>
       console.log('Received:')
       console.log(msg)
       switch (msg.tag) {
@@ -50,7 +63,7 @@ function srvConnect<S,U,Q>(fun: CallBacks<S,U,Q>): Connection<Q> {
       }
     }
 
-    ws.onclose = (e) => {
+    ws.onclose = () => {
       console.log('Disconnected.')
     }
 

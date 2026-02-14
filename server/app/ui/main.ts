@@ -8,22 +8,27 @@ type GUI = {
   questions: HTMLElement[]
 }
 
+type GameState = {
+  game: string,
+  questions: [string, Question<Q>[]]
+}
+
 let conn: Connection<Q>;
 let gui: GUI;
 
 export default
 function main () {
   const cb = {
-    uiRedraw: uiRedraw,
-    uiSetQuestion: uiSetQuestion,
-    uiQuestion: uiQuestion,
-    uiUpdate: uiUpdate
+    uiRedraw,
+    uiSetQuestion,
+    uiQuestion,
+    uiUpdate
   }
   conn = srvConnect(cb)
 }
 
 // Redraw the whole state
-function uiRedraw (state: any) {
+function uiRedraw (state: GameState) {
 
   gui = {
     counter: uiFromTemplate("template-counter"),
@@ -32,7 +37,7 @@ function uiRedraw (state: any) {
   }
 
   const body = document.getElementById("content")
-  if (body == null) { throw("Failed to find the body") }
+  if (body == null) { throw new Error("Failed to find the body") }
 
   body.innerHTML = ""
   gui.counter.textContent = "?"
@@ -63,7 +68,7 @@ function uiQuestion (q: Question<Q>) {
     })
 
     const body = document.getElementById("content")
-    if (body === null) { throw("Failed to find `content`") }
+    if (body === null) { throw new Error("Failed to find `content`") }
     body.appendChild(dom)
     gui.questions.push(dom)
   }

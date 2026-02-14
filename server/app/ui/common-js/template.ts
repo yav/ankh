@@ -12,15 +12,17 @@ export
 function uiFromTemplateNested(id: string)
   : [ HTMLElement, { [domId:string]: HTMLElement } ] {
   const dom = uiFromTemplate(id)
-  const els = {}
+  const els: Record<string, HTMLElement> = {}
   function search(it: HTMLElement) {
     for (const el of it.children) {
-      const a = el.getAttribute("id")
-      if (a !== null) {
-        els[a] = el
-        el.removeAttribute("id")
+      if (el instanceof HTMLElement) {
+        const a = el.getAttribute("id")
+        if (a !== null) {
+          els[a] = el
+          el.removeAttribute("id")
+        }
+        search(el)
       }
-      if (el instanceof HTMLElement) { search(el) }
     }
   }
   search(dom)
