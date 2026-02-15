@@ -2,7 +2,7 @@ import { Grid } from "hex"
 import { FLoc, ELoc } from "hex"
 import { newHexShape, newEdgeShape } from "hex"
 import { RectangularRegion } from "hex"
-import { FLocMap, ELocMap, type LocMap } from "hex"
+import { FLocMap, ELocMap } from "hex"
 
 // Terrain types for hexagons
 export type TerrainType = "plains" | "desert" | "water" | "deleted"
@@ -78,12 +78,12 @@ export function createItem(type: ItemType): Item {
   }
 }
 
-// Class to track location information (terrain and items)
-export class LocInfo<T> {
-  terrain: T
+// Class to track hexagon information (terrain and items)
+export class LocInfo {
+  terrain: TerrainType
   items: Item[]
 
-  constructor(terrain: T, items: Item[] = []) {
+  constructor(terrain: TerrainType, items: Item[] = []) {
     this.terrain = terrain
     this.items = items
   }
@@ -107,8 +107,8 @@ export interface GridConfig {
   rectHeight: number
   rectStartsWide: boolean
   debugHover: boolean
-  hexInfo: FLocMap<LocInfo<TerrainType>> // Maps hexagon locations to hex information (terrain and items)
-  edgeInfo: ELocMap<LocInfo<EdgeTerrainType>> // Maps edge locations to edge information (terrain and items)
+  hexInfo: FLocMap<LocInfo> // Maps hexagon locations to hex information (terrain and items)
+  edgeInfo: ELocMap<EdgeTerrainType> // Maps edge locations to terrain type
   editMode: "none" | "add" | "remove" | "terrain"
   selectedItemType: ItemType // Currently selected item type for add mode
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
@@ -185,12 +185,12 @@ export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
 
   // Render all hexagons (faces)
   for (const loc of region.faces()) {
-    renderLocation(ctx, loc, hexRenderer, new LocInfo<TerrainType>("deleted"))
+    renderHexagon(ctx, loc)
   }
 
   // Render all edges
   for (const edge of region.edges()) {
-    renderLocation(ctx, edge, edgeRenderer, new LocInfo<EdgeTerrainType>("deleted"))
+    renderEdge(ctx, edge)
   }
 }
 
@@ -220,73 +220,6 @@ function addDebugHover<T extends { toString(): string }>(
 }
 
 /**
- * Interface for rendering different types of grid locations (hexes, edges, vertices).
- * Encapsulates all the type-specific rendering behavior and data access needed to
- * render a single location and its associated game elements.
- */
-export interface LocationRenderer<T extends { toString(): string }, V, M extends LocMap<T, V>> {
-  /** Creates the visual shape element for this location type */
-  createShape(grid: Grid, loc: T): HTMLElement
-  /** Gets the background color for this location type from the palette and location data */
-  getBackgroundColor(config: GridConfig, data: V): string
-  /** Z-index for layering (hexes < edges < vertices) */
-  zIndex: string
-  /** Maximum number of game elements that can be placed at this location */
-  maxElements: number
-  /** Gets the element map for tracking game elements at locations of this type */
-  getElementMap(config: GridConfig): M
-  /** Gets the items from the location data */
-  getItems(data: V): Item[]
-  /** Gets the relative positions for arranging multiple game elements */
-  getElementPositions(elementCount: number): [number, number][]
-  /** Gets the function to calculate the screen position of this location */
-  getPositionFn(): (g: Grid, l: T) => [number, number]
-}
-
-/** Renderer for hexagon (face) locations - hexagons that can hold up to 6 elements */
-const hexRenderer: LocationRenderer<FLoc, LocInfo<TerrainType>, FLocMap<LocInfo<TerrainType>>> = {
-  createShape: (grid: Grid, loc: FLoc) => newHexShape(grid, loc),
-  getBackgroundColor: (config: GridConfig, data: LocInfo<TerrainType>) => {
-    return config.palette.terrainColors[data.terrain]
-  },
-  zIndex: "0",
-  maxElements: 6,
-  getElementMap: (config: GridConfig) => config.hexInfo,
-  getItems: (data: LocInfo<TerrainType>) => data.items,
-  getElementPositions: (elementCount: number) => {
-    // Position patterns for different hexagon element counts
-    // Positions are relative offsets from center
-    // Consistent spacing: 12px between element centers (4px gap between edges)
-    const positions: [number, number][][] = [
-      [], // 0 elements
-      [[0, 0]], // 1 element: center
-      [[-6, 0], [6, 0]], // 2 elements: horizontal line, 12px spacing
-      [[-12, 0], [0, 0], [12, 0]], // 3 elements: horizontal line, 12px spacing
-      [[-6, -6], [6, -6], [-6, 6], [6, 6]], // 4 elements: 2x2 grid, 12px spacing
-      [[-12, -6], [0, -6], [12, -6], [-6, 6], [6, 6]], // 5 elements: 3 top, 2 bottom, 12px spacing
-      [[-12, -6], [0, -6], [12, -6], [-12, 6], [0, 6], [12, 6]], // 6 elements: 2x3 grid, 12px spacing
-    ]
-    return positions[elementCount] || []
-  },
-  getPositionFn: () => (g: Grid, l: FLoc) => g.faceLoc(l)
-}
-
-/** Renderer for edge locations - edges that can hold 1 element */
-const edgeRenderer: LocationRenderer<ELoc, LocInfo<EdgeTerrainType>, ELocMap<LocInfo<EdgeTerrainType>>> = {
-  createShape: (grid: Grid, loc: ELoc) => newEdgeShape(grid, loc),
-  getBackgroundColor: (config: GridConfig, data: LocInfo<EdgeTerrainType>) => {
-    return config.palette.edgeTerrainColors[data.terrain]
-  },
-  zIndex: "1",
-  maxElements: 1,
-  getElementMap: (config: GridConfig) => config.edgeInfo,
-  getItems: (data: LocInfo<EdgeTerrainType>) => data.items,
-  getElementPositions: () => [[0, 0]],
-  getPositionFn: () => (g: Grid, l: ELoc) => g.edgeLoc(l)
-}
-
-
-/**
  * Shared rendering context passed to all location rendering calls.
  * Groups together all the common parameters needed for rendering to avoid
  * passing many individual parameters.
@@ -302,34 +235,89 @@ interface RenderContext {
 }
 
 /**
- * Renders a single grid location (hex, edge, or vertex) along with any game elements
- * placed at that location. Uses the provided renderer to handle type-specific behavior.
- *
- * This is the main rendering function that combines:
- * - Creating and styling the location shape
- * - Positioning it with offsets
- * - Adding interaction handlers (click, hover)
- * - Rendering game elements at the location
+ * Renders items placed on a hexagon location.
  */
-function renderLocation<T extends { toString(): string }, V, M extends LocMap<T, V>>(
+function renderHexagonItems(
   ctx: RenderContext,
-  loc: T,
-  renderer: LocationRenderer<T, V, M>,
-  defaultData: V
+  loc: FLoc,
+  data: LocInfo
+) {
+  const { grid, config, offsetX, offsetY, gridContainer, leftPane } = ctx
+
+  if (data.items.length === 0) return
+
+  // Position patterns for different hexagon element counts
+  const positions: [number, number][][] = [
+    [], // 0 elements
+    [[0, 0]], // 1 element: center
+    [[-6, 0], [6, 0]], // 2 elements: horizontal line, 12px spacing
+    [[-12, 0], [0, 0], [12, 0]], // 3 elements: horizontal line, 12px spacing
+    [[-6, -6], [6, -6], [-6, 6], [6, 6]], // 4 elements: 2x2 grid, 12px spacing
+    [[-12, -6], [0, -6], [12, -6], [-6, 6], [6, 6]], // 5 elements: 3 top, 2 bottom, 12px spacing
+    [[-12, -6], [0, -6], [12, -6], [-12, 6], [0, 6], [12, 6]], // 6 elements: 2x3 grid, 12px spacing
+  ]
+  const itemPositions = positions[data.items.length] || []
+  const [centerX, centerY] = grid.faceLoc(loc)
+  const elementSize = 8
+  const borderWidth = 1
+  const totalSize = elementSize + 2 * borderWidth
+
+  data.items.forEach((item: Item, i: number) => {
+    const [dx, dy] = itemPositions[i]
+    const x = centerX + dx + offsetX
+    const y = centerY + dy + offsetY
+
+    const element = document.createElement("div")
+    element.className = "hex-element"
+    element.style.left = `${x - totalSize / 2}px`
+    element.style.top = `${y - totalSize / 2}px`
+    // Look up color from current palette based on item type id
+    const currentItemTypes = createItemTypesFromPalette(config.palette)
+    const currentType = currentItemTypes.find(t => t.id === item.type.id)
+    element.style.backgroundColor = currentType ? currentType.color : item.type.color
+    element.style.border = "1px solid #333"
+
+    // Add cursor style and click handler for remove mode
+    if (config.editMode === "remove") {
+      element.style.cursor = "not-allowed"
+      element.style.pointerEvents = "auto"
+      // Capture the item's unique ID
+      const itemId = item.id
+      element.addEventListener("click", (e) => {
+        e.stopPropagation()
+        // Remove the item with the matching ID
+        const filtered = data.items.filter((it: Item) => it.id !== itemId)
+        data.items.length = 0
+        data.items.push(...filtered)
+        renderGrid(leftPane, config)
+      })
+    }
+
+    gridContainer.append(element)
+  })
+}
+
+/**
+ * Renders a single hexagon (face) location along with any game elements
+ * placed at that location. Supports terrain changes, adding, and removing items.
+ */
+function renderHexagon(
+  ctx: RenderContext,
+  loc: FLoc
 ) {
   const { grid, config, offsetX, offsetY, gridContainer, leftPane, debugTooltip } = ctx
-  const elementMap = renderer.getElementMap(config)
+  const hexInfo = config.hexInfo
 
   // Get or create data for this location
-  let data = elementMap.getLoc(loc)
+  let data = hexInfo.getLoc(loc)
   if (!data) {
-    data = defaultData
-    elementMap.setLoc(loc, data)
+    data = new LocInfo("deleted")
+    hexInfo.setLoc(loc, data)
   }
 
-  const shape = renderer.createShape(grid, loc)
-  shape.style.backgroundColor = renderer.getBackgroundColor(config, data)
-  shape.style.zIndex = renderer.zIndex
+  const shape = newHexShape(grid, loc)
+  shape.style.backgroundColor = config.palette.terrainColors[data.terrain]
+  shape.style.zIndex = "0"
 
   // Apply offset to position
   const currentLeft = parseFloat(shape.style.left)
@@ -349,24 +337,18 @@ function renderLocation<T extends { toString(): string }, V, M extends LocMap<T,
   }
 
   // Add click handler for terrain mode
-  if (config.editMode === "terrain" && data instanceof LocInfo) {
+  if (config.editMode === "terrain") {
     shape.addEventListener("click", () => {
-      // Determine which terrain type to use based on location type
-      if (loc instanceof FLoc) {
-        (data as LocInfo<TerrainType>).terrain = config.selectedTerrainType
-      } else if (loc instanceof ELoc) {
-        (data as LocInfo<EdgeTerrainType>).terrain = config.selectedEdgeTerrainType
-      }
+      data.terrain = config.selectedTerrainType
       renderGrid(leftPane, config)
     })
   }
 
-  // Add click handler for adding entities
+  // Add click handler for adding items
   if (config.editMode === "add") {
     shape.addEventListener("click", () => {
-      const items = renderer.getItems(data)
-      if (items.length < renderer.maxElements) {
-        items.push(createItem(config.selectedItemType))
+      if (data.items.length < 6) {
+        data.items.push(createItem(config.selectedItemType))
         renderGrid(leftPane, config)
       }
     })
@@ -379,49 +361,56 @@ function renderLocation<T extends { toString(): string }, V, M extends LocMap<T,
 
   gridContainer.append(shape)
 
-  // Render elements at this location
-  const items = renderer.getItems(data)
-  if (items.length > 0) {
-    const positions = renderer.getElementPositions(items.length)
-    const getPosition = renderer.getPositionFn()
-    const [centerX, centerY] = getPosition(grid, loc)
-    const elementSize = 8
-    const borderWidth = 1
-    const totalSize = elementSize + 2 * borderWidth
+  // Render items at this location
+  renderHexagonItems(ctx, loc, data)
+}
 
-    items.forEach((item: Item, i: number) => {
-      const [dx, dy] = positions[i]
-      const x = centerX + dx + offsetX
-      const y = centerY + dy + offsetY
+/**
+ * Renders a single edge location. Only supports terrain changes (no items).
+ */
+function renderEdge(
+  ctx: RenderContext,
+  loc: ELoc
+) {
+  const { grid, config, offsetX, offsetY, gridContainer, leftPane, debugTooltip } = ctx
+  const edgeInfo = config.edgeInfo
 
-      const element = document.createElement("div")
-      element.className = "hex-element"
-      element.style.left = `${x - totalSize / 2}px`
-      element.style.top = `${y - totalSize / 2}px`
-      // Look up color from current palette based on item type id
-      const currentItemTypes = createItemTypesFromPalette(config.palette)
-      const currentType = currentItemTypes.find(t => t.id === item.type.id)
-      element.style.backgroundColor = currentType ? currentType.color : item.type.color
-      element.style.border = "1px solid #333"
+  // Get or create terrain for this location
+  let terrain = edgeInfo.getLoc(loc)
+  if (!terrain) {
+    terrain = "deleted"
+    edgeInfo.setLoc(loc, terrain)
+  }
 
-      // Add cursor style and click handler for remove mode
-      if (config.editMode === "remove") {
-        element.style.cursor = "not-allowed"
-        element.style.pointerEvents = "auto"
-        // Capture the item's unique ID
-        const itemId = item.id
-        element.addEventListener("click", (e) => {
-          e.stopPropagation()
-          const currentItems = renderer.getItems(data)
-          // Remove the item with the matching ID
-          const filtered = currentItems.filter((it: Item) => it.id !== itemId)
-          currentItems.length = 0
-          currentItems.push(...filtered)
-          renderGrid(leftPane, config)
-        })
-      }
+  const shape = newEdgeShape(grid, loc)
+  shape.style.backgroundColor = config.palette.edgeTerrainColors[terrain]
+  shape.style.zIndex = "1"
 
-      gridContainer.append(element)
+  // Apply offset to position
+  const currentLeft = parseFloat(shape.style.left)
+  const currentTop = parseFloat(shape.style.top)
+  shape.style.left = `${currentLeft + offsetX}px`
+  shape.style.top = `${currentTop + offsetY}px`
+
+  // Add cursor style based on edit mode
+  if (config.editMode === "terrain") {
+    shape.style.cursor = "crosshair"
+  } else {
+    shape.style.cursor = "default"
+  }
+
+  // Add click handler for terrain mode
+  if (config.editMode === "terrain") {
+    shape.addEventListener("click", () => {
+      edgeInfo.setLoc(loc, config.selectedEdgeTerrainType)
+      renderGrid(leftPane, config)
     })
   }
+
+  // Add hover debug info
+  if (config.debugHover && debugTooltip) {
+    addDebugHover(shape, loc, debugTooltip, leftPane)
+  }
+
+  gridContainer.append(shape)
 }

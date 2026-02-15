@@ -1,8 +1,5 @@
-import { renderGrid, type GridConfig, WARM_PALETTE, COOL_PALETTE, type ColorPalette, createItemTypesFromPalette, LocInfo, type TerrainType, type EdgeTerrainType } from "./grid-renderer.ts"
+import { renderGrid, type GridConfig, WARM_PALETTE, createItemTypesFromPalette, LocInfo, type TerrainType, type EdgeTerrainType } from "./grid-renderer.ts"
 import { FLocMap, ELocMap } from "hex"
-
-// Available color palettes
-const AVAILABLE_PALETTES: ColorPalette[] = [WARM_PALETTE, COOL_PALETTE]
 
 function createDebugHoverControl(config: GridConfig, updateGrid: () => void): HTMLElement {
   const debugSection = document.createElement("div")
@@ -283,45 +280,6 @@ function createTerrainTypeSelector(config: GridConfig, updateGrid: () => void): 
 }
 
 
-function createPaletteControl(config: GridConfig, updateGrid: () => void): HTMLElement {
-  const paletteSection = document.createElement("div")
-  paletteSection.className = "control-section"
-
-  const paletteLabel = document.createElement("label")
-  paletteLabel.textContent = "Color Palette:"
-
-  const paletteSelect = document.createElement("select")
-  paletteSelect.id = "palette-select"
-
-  // Create options for each available palette
-  for (const palette of AVAILABLE_PALETTES) {
-    const option = document.createElement("option")
-    option.value = palette.name
-    option.textContent = palette.name
-    option.selected = config.palette.name === palette.name
-    paletteSelect.appendChild(option)
-  }
-
-  paletteSelect.addEventListener("change", () => {
-    // Find the selected palette
-    const selectedPalette = AVAILABLE_PALETTES.find(p => p.name === paletteSelect.value)
-    if (selectedPalette) {
-      config.palette = selectedPalette
-      // Update the selected item type to use the new palette's colors
-      const newItemTypes = createItemTypesFromPalette(selectedPalette)
-      // Try to keep the same item type ID, or default to the first one
-      const matchingType = newItemTypes.find(it => it.id === config.selectedItemType.id)
-      config.selectedItemType = matchingType || newItemTypes[0]
-      updateGrid()
-    }
-  })
-
-  paletteSection.appendChild(paletteLabel)
-  paletteSection.appendChild(paletteSelect)
-
-  return paletteSection
-}
-
 function createRectangularRegionControl(config: GridConfig, updateGrid: () => void): HTMLElement {
   const container = document.createElement("div")
   container.className = "control-section"
@@ -376,20 +334,12 @@ function createRectangularRegionControl(config: GridConfig, updateGrid: () => vo
   return container
 }
 
-function createControls(leftPane: HTMLElement, rightPane: HTMLElement, config: GridConfig): HTMLElement {
+function createControls(leftPane: HTMLElement, config: GridConfig): HTMLElement {
   const controlsContainer = document.createElement("div")
 
-  // Helper function to re-render grid and controls
+  // Helper function to re-render grid
   const updateGrid = () => {
     renderGrid(leftPane, config)
-  }
-
-  const updateAll = () => {
-    renderGrid(leftPane, config)
-    // Recreate controls to reflect palette changes
-    rightPane.innerHTML = ""
-    const newControls = createControls(leftPane, rightPane, config)
-    rightPane.appendChild(newControls)
   }
 
   // Add controls - top row with debug hover
@@ -397,9 +347,6 @@ function createControls(leftPane: HTMLElement, rightPane: HTMLElement, config: G
   topRow.className = "controls-top-row"
   topRow.appendChild(createDebugHoverControl(config, updateGrid))
   controlsContainer.appendChild(topRow)
-
-  // Add palette selector (use updateAll to regenerate controls when palette changes)
-  controlsContainer.appendChild(createPaletteControl(config, updateAll))
 
   controlsContainer.appendChild(createRectangularRegionControl(config, updateGrid))
 
@@ -439,8 +386,8 @@ function main() {
     rectHeight: 10,
     rectStartsWide: true,
     debugHover: false,
-    hexInfo: new FLocMap<LocInfo<TerrainType>>(),
-    edgeInfo: new ELocMap<LocInfo<EdgeTerrainType>>(),
+    hexInfo: new FLocMap<LocInfo>(),
+    edgeInfo: new ELocMap<EdgeTerrainType>(),
     editMode: "none",
     selectedItemType: createItemTypesFromPalette(WARM_PALETTE)[0],  // Default to first item type (alpha)
     selectedTerrainType: "plains",  // Default hex terrain type
@@ -451,7 +398,7 @@ function main() {
 
   // Create and add controls to right pane
   rightPane.innerHTML = ""
-  const controls = createControls(leftPane, rightPane, initialConfig)
+  const controls = createControls(leftPane, initialConfig)
   rightPane.appendChild(controls)
 }
 
