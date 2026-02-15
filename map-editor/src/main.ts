@@ -169,14 +169,23 @@ function createTerrainTypeSelector(config: GridConfig, updateGrid: () => void): 
   container.className = "control-section"
   container.style.marginBottom = "10px"
 
+  // Flex container for terrain sections
+  const flexContainer = document.createElement("div")
+  flexContainer.style.display = "flex"
+  flexContainer.style.gap = "20px"
+  flexContainer.style.flexWrap = "wrap"
+
   // Hex terrain types section
+  const hexSection = document.createElement("div")
+  hexSection.style.flex = "1"
+  hexSection.style.minWidth = "150px"
+
   const hexLabel = document.createElement("label")
   hexLabel.textContent = "Hex Terrain:"
-  container.appendChild(hexLabel)
+  hexSection.appendChild(hexLabel)
 
   const hexRadioGroup = document.createElement("div")
   hexRadioGroup.style.marginTop = "8px"
-  hexRadioGroup.style.marginBottom = "12px"
 
   const hexTerrainTypes: Array<{ id: TerrainType, displayName: string }> = [
     { id: "plains", displayName: "Plains" },
@@ -213,20 +222,25 @@ function createTerrainTypeSelector(config: GridConfig, updateGrid: () => void): 
     hexRadioGroup.appendChild(radioLabel)
   }
 
-  container.appendChild(hexRadioGroup)
+  hexSection.appendChild(hexRadioGroup)
+  flexContainer.appendChild(hexSection)
 
   // Edge terrain types section
+  const edgeSection = document.createElement("div")
+  edgeSection.style.flex = "1"
+  edgeSection.style.minWidth = "150px"
+
   const edgeLabel = document.createElement("label")
   edgeLabel.textContent = "Edge Terrain:"
-  container.appendChild(edgeLabel)
+  edgeSection.appendChild(edgeLabel)
 
   const edgeRadioGroup = document.createElement("div")
   edgeRadioGroup.style.marginTop = "8px"
 
   const edgeTerrainTypes: Array<{ id: EdgeTerrainType, displayName: string }> = [
-    { id: "deleted", displayName: "Delete" },
     { id: "water", displayName: "Water" },
     { id: "camels", displayName: "Camels" },
+    { id: "deleted", displayName: "Delete" },
   ]
 
   for (const terrainType of edgeTerrainTypes) {
@@ -257,7 +271,10 @@ function createTerrainTypeSelector(config: GridConfig, updateGrid: () => void): 
     edgeRadioGroup.appendChild(radioLabel)
   }
 
-  container.appendChild(edgeRadioGroup)
+  edgeSection.appendChild(edgeRadioGroup)
+  flexContainer.appendChild(edgeSection)
+
+  container.appendChild(flexContainer)
 
   // Show only when in terrain mode
   container.style.display = config.editMode === "terrain" ? "block" : "none"

@@ -45,8 +45,8 @@ export const WARM_PALETTE: ColorPalette = {
     deleted: "#BDBDBD"    // Gray
   },
   edgeTerrainColors: {
-    deleted: "#BDBDBD",   // Gray
-    water: "#64B5F6",     // Light blue
+    deleted: "#9E9E9E",   // Darker gray
+    water: "#42A5F5",     // Darker blue
     camels: "#D4A574"     // Sandy/camel brown
   },
   itemTypes: {
@@ -69,8 +69,8 @@ export const COOL_PALETTE: ColorPalette = {
     deleted: "#CFD8DC"    // Blue gray
   },
   edgeTerrainColors: {
-    deleted: "#CFD8DC",   // Blue gray
-    water: "#81D4FA",     // Bright light blue
+    deleted: "#B0BEC5",   // Darker blue gray
+    water: "#4FC3F7",     // Darker light blue
     camels: "#FFAB91"     // Warm peach/coral
   },
   itemTypes: {
