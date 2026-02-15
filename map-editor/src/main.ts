@@ -1,4 +1,4 @@
-import { renderGrid, type GridConfig, WARM_PALETTE, createItemTypesFromPalette, LocInfo, type TerrainType, type EdgeTerrainType } from "./grid-renderer.ts"
+import { renderGrid, type GridConfig, WARM_PALETTE, LocInfo, type TerrainType, type EdgeTerrainType, type ItemKind } from "./grid-renderer.ts"
 import { FLocMap, ELocMap } from "hex"
 
 function createDebugHoverControl(config: GridConfig, updateGrid: () => void): HTMLElement {
@@ -112,20 +112,20 @@ function createEditModeControl(config: GridConfig, updateGrid: () => void): HTML
 
 function createItemTypeSelector(config: GridConfig, updateGrid: () => void): HTMLElement {
   const container = document.createElement("div")
-  container.className = "control-section"
-  container.style.marginBottom = "10px"
+  container.style.flex = "1"
+  container.style.minWidth = "150px"
 
   const label = document.createElement("label")
-  label.textContent = "Item Type:"
+  label.textContent = "Player:"
   container.appendChild(label)
 
   const radioGroup = document.createElement("div")
   radioGroup.style.marginTop = "8px"
 
-  // Generate item types from the current palette
-  const itemTypes = createItemTypesFromPalette(config.palette)
+  // Generate player options from the palette
+  config.palette.players.forEach((playerColor, index) => {
+    const playerNumber = index + 1
 
-  for (const itemType of itemTypes) {
     const radioLabel = document.createElement("label")
     radioLabel.style.display = "block"
     radioLabel.style.marginBottom = "3px"
@@ -133,27 +133,97 @@ function createItemTypeSelector(config: GridConfig, updateGrid: () => void): HTM
 
     const radio = document.createElement("input")
     radio.type = "radio"
-    radio.name = "itemType"
-    radio.value = itemType.id
-    radio.checked = config.selectedItemType.id === itemType.id
+    radio.name = "player"
+    radio.value = String(playerNumber)
+    radio.checked = config.selectedPlayer === playerNumber
 
     const colorIndicator = document.createElement("span")
     colorIndicator.className = "item-type-indicator"
-    colorIndicator.style.backgroundColor = itemType.color
+    colorIndicator.style.backgroundColor = playerColor
 
     radio.addEventListener("change", () => {
-      config.selectedItemType = itemType
+      config.selectedPlayer = playerNumber
       updateGrid()
     })
 
     radioLabel.appendChild(radio)
     radioLabel.appendChild(document.createTextNode(" "))
     radioLabel.appendChild(colorIndicator)
-    radioLabel.appendChild(document.createTextNode(itemType.displayName))
+    radioLabel.appendChild(document.createTextNode(`Player ${playerNumber}`))
+    radioGroup.appendChild(radioLabel)
+  })
+
+  container.appendChild(radioGroup)
+
+  return container
+}
+
+function createItemKindSelector(config: GridConfig, updateGrid: () => void): HTMLElement {
+  const container = document.createElement("div")
+  container.style.flex = "1"
+  container.style.minWidth = "150px"
+
+  const label = document.createElement("label")
+  label.textContent = "Item Kind:"
+  container.appendChild(label)
+
+  const radioGroup = document.createElement("div")
+  radioGroup.style.marginTop = "8px"
+
+  const itemKinds: Array<{ id: ItemKind, displayName: string }> = [
+    { id: "god", displayName: "God" },
+    { id: "soldier", displayName: "Soldier" },
+    { id: "temple", displayName: "Temple" },
+    { id: "obelisk", displayName: "Obelisk" },
+    { id: "pyramid", displayName: "Pyramid" },
+  ]
+
+  for (const itemKind of itemKinds) {
+    const radioLabel = document.createElement("label")
+    radioLabel.style.display = "block"
+    radioLabel.style.marginBottom = "3px"
+    radioLabel.style.cursor = "pointer"
+
+    const radio = document.createElement("input")
+    radio.type = "radio"
+    radio.name = "itemKind"
+    radio.value = itemKind.id
+    radio.checked = config.selectedItemKind === itemKind.id
+
+    radio.addEventListener("change", () => {
+      config.selectedItemKind = itemKind.id
+      updateGrid()
+    })
+
+    radioLabel.appendChild(radio)
+    radioLabel.appendChild(document.createTextNode(" "))
+    radioLabel.appendChild(document.createTextNode(itemKind.displayName))
     radioGroup.appendChild(radioLabel)
   }
 
   container.appendChild(radioGroup)
+
+  return container
+}
+
+function createItemSelectors(config: GridConfig, updateGrid: () => void): HTMLElement {
+  const container = document.createElement("div")
+  container.className = "control-section"
+  container.style.marginBottom = "10px"
+
+  // Flex container for item selectors
+  const flexContainer = document.createElement("div")
+  flexContainer.style.display = "flex"
+  flexContainer.style.gap = "20px"
+  flexContainer.style.flexWrap = "wrap"
+
+  // Create both selectors
+  const itemTypeSelector = createItemTypeSelector(config, updateGrid)
+  const itemKindSelector = createItemKindSelector(config, updateGrid)
+
+  flexContainer.appendChild(itemTypeSelector)
+  flexContainer.appendChild(itemKindSelector)
+  container.appendChild(flexContainer)
 
   // Show only when in add mode
   container.style.display = config.editMode === "add" ? "block" : "none"
@@ -354,9 +424,9 @@ function createControls(leftPane: HTMLElement, config: GridConfig): HTMLElement 
   const editModeControl = createEditModeControl(config, updateGrid)
   controlsContainer.appendChild(editModeControl)
 
-  // Create item type selector
-  const itemTypeSelector = createItemTypeSelector(config, updateGrid)
-  controlsContainer.appendChild(itemTypeSelector)
+  // Create item selectors (color and kind)
+  const itemSelectors = createItemSelectors(config, updateGrid)
+  controlsContainer.appendChild(itemSelectors)
 
   // Create terrain type selector
   const terrainTypeSelector = createTerrainTypeSelector(config, updateGrid)
@@ -366,7 +436,7 @@ function createControls(leftPane: HTMLElement, config: GridConfig): HTMLElement 
   const editModeRadios = editModeControl.querySelectorAll('input[name="edit-mode"]')
   editModeRadios.forEach((radio) => {
     radio.addEventListener("change", () => {
-      itemTypeSelector.style.display = config.editMode === "add" ? "block" : "none"
+      itemSelectors.style.display = config.editMode === "add" ? "block" : "none"
       terrainTypeSelector.style.display = config.editMode === "terrain" ? "block" : "none"
     })
   })
@@ -389,7 +459,8 @@ function main() {
     hexInfo: new FLocMap<LocInfo>(),
     edgeInfo: new ELocMap<EdgeTerrainType>(),
     editMode: "none",
-    selectedItemType: createItemTypesFromPalette(WARM_PALETTE)[0],  // Default to first item type (alpha)
+    selectedPlayer: 1,  // Default to Player 1
+    selectedItemKind: "soldier",  // Default item kind
     selectedTerrainType: "plains",  // Default hex terrain type
     selectedEdgeTerrainType: "deleted",  // Default edge terrain type
     palette: WARM_PALETTE

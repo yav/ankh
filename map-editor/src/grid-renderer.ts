@@ -24,13 +24,7 @@ export interface ColorPalette {
     water: string
     camels: string
   }
-  itemTypes: {
-    alpha: { color: string, displayName: string }
-    beta: { color: string, displayName: string }
-    gamma: { color: string, displayName: string }
-    delta: { color: string, displayName: string }
-    epsilon: { color: string, displayName: string }
-  }
+  players: string[]  // Array of player colors
 }
 
 // Warm color palette (warm grid, cool items for contrast)
@@ -47,34 +41,31 @@ export const WARM_PALETTE: ColorPalette = {
     water: "#42A5F5",     // Darker blue
     camels: "#D4A574"     // Sandy/camel brown
   },
-  itemTypes: {
-    alpha: { color: "#01579B", displayName: "Ocean" },      // Very dark blue
-    beta: { color: "#0288D1", displayName: "Cyan" },        // Medium blue
-    gamma: { color: "#26A69A", displayName: "Teal" },       // Medium teal
-    delta: { color: "#81C784", displayName: "Green" },      // Light green
-    epsilon: { color: "#C5E1A5", displayName: "Lime" },     // Very light lime
-  }
+  players: [
+    "#01579B",      // Player 1: Very dark blue
+    "#0288D1",      // Player 2: Medium blue
+    "#26A69A",      // Player 3: Medium teal
+    "#81C784",      // Player 4: Light green
+    "#C5E1A5",      // Player 5: Very light lime
+  ]
 }
 
-// Item type system for supporting different colored boxes on the grid
-export interface ItemType {
-  id: string
-  color: string
-  displayName: string
-}
-
-export interface Item {
-  type: ItemType
-  id: number  // Unique identifier for this item
-}
+// Item kind represents the actual game entity type
+export type ItemKind = "god" | "soldier" | "temple" | "obelisk" | "pyramid"
 
 // Counter for generating unique item IDs
 let nextItemId = 0
 
-export function createItem(type: ItemType): Item {
-  return {
-    type,
-    id: nextItemId++
+// Item class represents a game piece on the board
+export class Item {
+  player: number  // Player number (1-5)
+  kind: ItemKind
+  id: number  // Unique identifier for this item
+
+  constructor(player: number, kind: ItemKind) {
+    this.player = player
+    this.kind = kind
+    this.id = nextItemId++
   }
 }
 
@@ -89,18 +80,6 @@ export class LocInfo {
   }
 }
 
-// Create item types from a color palette
-export function createItemTypesFromPalette(palette: ColorPalette): ItemType[] {
-  return [
-    { id: "alpha", color: palette.itemTypes.alpha.color, displayName: palette.itemTypes.alpha.displayName },
-    { id: "beta", color: palette.itemTypes.beta.color, displayName: palette.itemTypes.beta.displayName },
-    { id: "gamma", color: palette.itemTypes.gamma.color, displayName: palette.itemTypes.gamma.displayName },
-    { id: "delta", color: palette.itemTypes.delta.color, displayName: palette.itemTypes.delta.displayName },
-    { id: "epsilon", color: palette.itemTypes.epsilon.color, displayName: palette.itemTypes.epsilon.displayName },
-  ]
-}
-
-export const ITEM_TYPES: ItemType[] = createItemTypesFromPalette(WARM_PALETTE)
 
 export interface GridConfig {
   rectWidth: number
@@ -110,7 +89,8 @@ export interface GridConfig {
   hexInfo: FLocMap<LocInfo> // Maps hexagon locations to hex information (terrain and items)
   edgeInfo: ELocMap<EdgeTerrainType> // Maps edge locations to terrain type
   editMode: "none" | "add" | "remove" | "terrain"
-  selectedItemType: ItemType // Currently selected item type for add mode
+  selectedPlayer: number // Currently selected player (1-5) for add mode
+  selectedItemKind: ItemKind // Currently selected item kind for add mode
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
   selectedEdgeTerrainType: EdgeTerrainType // Currently selected edge terrain type for terrain mode
   palette: ColorPalette // Color palette for theming
@@ -271,11 +251,20 @@ function renderHexagonItems(
     element.className = "hex-element"
     element.style.left = `${x - totalSize / 2}px`
     element.style.top = `${y - totalSize / 2}px`
-    // Look up color from current palette based on item type id
-    const currentItemTypes = createItemTypesFromPalette(config.palette)
-    const currentType = currentItemTypes.find(t => t.id === item.type.id)
-    element.style.backgroundColor = currentType ? currentType.color : item.type.color
+    // Look up color from current palette based on player number
+    const playerColor = config.palette.players[item.player - 1] || "#888"
+    element.style.backgroundColor = playerColor
     element.style.border = "1px solid #333"
+
+    // Add the first letter of the item kind
+    element.style.display = "flex"
+    element.style.alignItems = "center"
+    element.style.justifyContent = "center"
+    element.style.fontSize = "8px"
+    element.style.fontWeight = "bold"
+    element.style.color = "#fff"
+    element.style.textShadow = "0 0 2px #000"
+    element.textContent = item.kind.charAt(0).toUpperCase()
 
     // Add cursor style and click handler for remove mode
     if (config.editMode === "remove") {
@@ -348,7 +337,7 @@ function renderHexagon(
   if (config.editMode === "add") {
     shape.addEventListener("click", () => {
       if (data.items.length < 6) {
-        data.items.push(createItem(config.selectedItemType))
+        data.items.push(new Item(config.selectedPlayer, config.selectedItemKind))
         renderGrid(leftPane, config)
       }
     })
