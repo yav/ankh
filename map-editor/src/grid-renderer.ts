@@ -379,7 +379,7 @@ function renderHexagon(
   // Get or create data for this location
   let data = hexInfo.getLoc(loc)
   if (!data) {
-    data = new LocInfo("plains")
+    data = new LocInfo("deleted")
     hexInfo.setLoc(loc, data)
   }
 
