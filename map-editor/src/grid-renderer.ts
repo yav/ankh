@@ -13,7 +13,6 @@ export type EdgeTerrainType = "deleted" | "water" | "camels"
 // Color palette system for theming
 export interface ColorPalette {
   name: string
-  edgeBackground: string
   terrainColors: {
     plains: string
     desert: string
@@ -37,7 +36,6 @@ export interface ColorPalette {
 // Warm color palette (warm grid, cool items for contrast)
 export const WARM_PALETTE: ColorPalette = {
   name: "Warm",
-  edgeBackground: "#5D4037",      // Rich brown
   terrainColors: {
     plains: "#A5D6A7",    // Light green
     desert: "#FFE082",    // Light amber/yellow
@@ -55,30 +53,6 @@ export const WARM_PALETTE: ColorPalette = {
     gamma: { color: "#26A69A", displayName: "Teal" },       // Medium teal
     delta: { color: "#81C784", displayName: "Green" },      // Light green
     epsilon: { color: "#C5E1A5", displayName: "Lime" },     // Very light lime
-  }
-}
-
-// Cool color palette (cool grid, warm items for contrast)
-export const COOL_PALETTE: ColorPalette = {
-  name: "Cool",
-  edgeBackground: "#1565C0",      // Deep blue
-  terrainColors: {
-    plains: "#C5E1A5",    // Light lime green
-    desert: "#FFCC80",    // Light orange
-    water: "#81D4FA",     // Bright light blue
-    deleted: "#CFD8DC"    // Blue gray
-  },
-  edgeTerrainColors: {
-    deleted: "#B0BEC5",   // Darker blue gray
-    water: "#4FC3F7",     // Darker light blue
-    camels: "#FFAB91"     // Warm peach/coral
-  },
-  itemTypes: {
-    alpha: { color: "#BF360C", displayName: "Terracotta" },      // Very dark red-orange
-    beta: { color: "#E65100", displayName: "Golden Honey" },     // Dark orange
-    gamma: { color: "#FF6F00", displayName: "Coral" },           // Medium amber
-    delta: { color: "#FFA726", displayName: "Warm Taupe" },      // Light orange
-    epsilon: { color: "#FFD54F", displayName: "Burnt Sienna" },  // Very light yellow
   }
 }
 
