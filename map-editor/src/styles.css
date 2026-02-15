@@ -108,25 +108,29 @@ body {
   vertical-align: middle;
 }
 
-/* Player color indicators */
+/* Player color indicators - high contrast, colorblind-friendly palette */
 .player-1-color {
-  background-color: #01579B; /* Very dark blue */
+  background-color: #0066FF; /* Bright blue */
 }
 
 .player-2-color {
-  background-color: #0288D1; /* Medium blue */
+  background-color: #FF6600; /* Bright orange */
 }
 
 .player-3-color {
-  background-color: #26A69A; /* Medium teal */
+  background-color: #00AA00; /* Bright green */
 }
 
 .player-4-color {
-  background-color: #81C784; /* Light green */
+  background-color: #CC0099; /* Magenta */
 }
 
 .player-5-color {
-  background-color: #C5E1A5; /* Very light lime */
+  background-color: #996633; /* Brown */
+}
+
+.player-6-color {
+  background-color: #FFCC00; /* Yellow */
 }
 
 /* Hex terrain colors */
