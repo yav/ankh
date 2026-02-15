@@ -209,16 +209,16 @@ body {
 }
 
 .terrain-deleted {
-  background-color: #BDBDBD; /* Gray */
+  background-color: #f5f5f5; /* Matches background */
 }
 
 /* Edge type colors */
 .edge-terrain-deleted {
-  background-color: #9E9E9E; /* Darker gray */
+  background-color: #e8e8e8; /* Very light gray */
 }
 
 .edge-terrain-water {
-  background-color: #42A5F5; /* Darker blue */
+  background-color: #64B5F6; /* Light blue - matches hex water */
 }
 
 .edge-terrain-camels {

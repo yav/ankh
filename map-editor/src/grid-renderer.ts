@@ -185,7 +185,7 @@ export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
   const grid = new Grid()
   grid.setOrientation("edge_up")
   grid.setInnerDiameter(64)
-  grid.setSpacing(16)
+  grid.setSpacing(8)
 
   // Create rectangular region
   const region = new RectangularRegion(
