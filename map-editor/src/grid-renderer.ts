@@ -10,46 +10,6 @@ export type TerrainType = "plains" | "desert" | "water" | "deleted"
 // Terrain types for edges
 export type EdgeTerrainType = "deleted" | "water" | "camels"
 
-// Color palette system for theming
-export interface ColorPalette {
-  name: string
-  terrainColors: {
-    plains: string
-    desert: string
-    water: string
-    deleted: string
-  }
-  edgeTerrainColors: {
-    deleted: string
-    water: string
-    camels: string
-  }
-  players: string[]  // Array of player colors
-}
-
-// Warm color palette (warm grid, cool items for contrast)
-export const WARM_PALETTE: ColorPalette = {
-  name: "Warm",
-  terrainColors: {
-    plains: "#A5D6A7",    // Light green
-    desert: "#FFE082",    // Light amber/yellow
-    water: "#64B5F6",     // Light blue
-    deleted: "#BDBDBD"    // Gray
-  },
-  edgeTerrainColors: {
-    deleted: "#9E9E9E",   // Darker gray
-    water: "#42A5F5",     // Darker blue
-    camels: "#D4A574"     // Sandy/camel brown
-  },
-  players: [
-    "#01579B",      // Player 1: Very dark blue
-    "#0288D1",      // Player 2: Medium blue
-    "#26A69A",      // Player 3: Medium teal
-    "#81C784",      // Player 4: Light green
-    "#C5E1A5",      // Player 5: Very light lime
-  ]
-}
-
 // Item kind represents the actual game entity type
 export type ItemKind = "god" | "soldier" | "temple" | "obelisk" | "pyramid"
 
@@ -93,7 +53,6 @@ export interface GridConfig {
   selectedItemKind: ItemKind // Currently selected item kind for add mode
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
   selectedEdgeTerrainType: EdgeTerrainType // Currently selected edge terrain type for terrain mode
-  palette: ColorPalette // Color palette for theming
 }
 
 export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
@@ -249,21 +208,9 @@ function renderHexagonItems(
 
     const element = document.createElement("div")
     element.className = "hex-element"
+    element.classList.add(`player-${item.player}-color`)
     element.style.left = `${x - totalSize / 2}px`
     element.style.top = `${y - totalSize / 2}px`
-    // Look up color from current palette based on player number
-    const playerColor = config.palette.players[item.player - 1] || "#888"
-    element.style.backgroundColor = playerColor
-    element.style.border = "1px solid #333"
-
-    // Add the first letter of the item kind
-    element.style.display = "flex"
-    element.style.alignItems = "center"
-    element.style.justifyContent = "center"
-    element.style.fontSize = "8px"
-    element.style.fontWeight = "bold"
-    element.style.color = "#fff"
-    element.style.textShadow = "0 0 2px #000"
     element.textContent = item.kind.charAt(0).toUpperCase()
 
     // Add cursor style and click handler for remove mode
@@ -305,7 +252,7 @@ function renderHexagon(
   }
 
   const shape = newHexShape(grid, loc)
-  shape.style.backgroundColor = config.palette.terrainColors[data.terrain]
+  shape.classList.add(`terrain-${data.terrain}`)
   shape.style.zIndex = "0"
 
   // Apply offset to position
@@ -372,7 +319,7 @@ function renderEdge(
   }
 
   const shape = newEdgeShape(grid, loc)
-  shape.style.backgroundColor = config.palette.edgeTerrainColors[terrain]
+  shape.classList.add(`edge-terrain-${terrain}`)
   shape.style.zIndex = "1"
 
   // Apply offset to position

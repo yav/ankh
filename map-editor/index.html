@@ -12,7 +12,170 @@
         <!-- Hexagonal grid will go here later -->
       </div>
       <div class="right-pane" id="right-pane">
-        <!-- UI controls will go here later -->
+        <!-- Debug hover control -->
+        <div class="controls-top-row">
+          <div class="control-section-inline">
+            <label>
+              <input type="checkbox" id="debug-hover-checkbox" />
+              <span>Debug Hover</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Rectangular region controls -->
+        <div class="control-section">
+          <label id="rect-width-label">Width: 7</label>
+          <input type="range" id="rect-width" min="1" max="20" value="7" />
+          <br />
+          <label id="rect-height-label">Height: 10</label>
+          <input type="range" id="rect-height" min="1" max="20" value="10" />
+          <br />
+          <label>
+            <input type="checkbox" id="rect-starts-wide" checked />
+            <span>Starts Wide</span>
+          </label>
+        </div>
+
+        <!-- Edit mode controls -->
+        <div class="control-section">
+          <label>Edit Mode:</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="edit-mode" value="none" checked />
+              <span>None</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="edit-mode" value="add" />
+              <span>Add</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="edit-mode" value="remove" />
+              <span>Remove</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="edit-mode" value="terrain" />
+              <span>Terrain</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Item selectors (shown only in add mode) -->
+        <div class="control-section control-section-spaced" id="item-selectors" style="display: none;">
+          <div class="selector-flex-container">
+            <!-- Player selector -->
+            <div class="selector-container">
+              <label>Player:</label>
+              <div class="selector-radio-group">
+                <label class="block-radio-label">
+                  <input type="radio" name="player" value="1" checked />
+                  <span class="item-type-indicator player-1-color"></span>
+                  <span>Player 1</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="player" value="2" />
+                  <span class="item-type-indicator player-2-color"></span>
+                  <span>Player 2</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="player" value="3" />
+                  <span class="item-type-indicator player-3-color"></span>
+                  <span>Player 3</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="player" value="4" />
+                  <span class="item-type-indicator player-4-color"></span>
+                  <span>Player 4</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="player" value="5" />
+                  <span class="item-type-indicator player-5-color"></span>
+                  <span>Player 5</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Item kind selector -->
+            <div class="selector-container">
+              <label>Item Kind:</label>
+              <div class="selector-radio-group">
+                <label class="block-radio-label">
+                  <input type="radio" name="itemKind" value="god" />
+                  <span>God</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="itemKind" value="soldier" checked />
+                  <span>Soldier</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="itemKind" value="temple" />
+                  <span>Temple</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="itemKind" value="obelisk" />
+                  <span>Obelisk</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="itemKind" value="pyramid" />
+                  <span>Pyramid</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terrain type selectors (shown only in terrain mode) -->
+        <div class="control-section control-section-spaced" id="terrain-selectors" style="display: none;">
+          <div class="selector-flex-container">
+            <!-- Hex terrain selector -->
+            <div class="selector-container">
+              <label>Hex Terrain:</label>
+              <div class="selector-radio-group">
+                <label class="block-radio-label">
+                  <input type="radio" name="terrainType" value="plains" checked />
+                  <span class="item-type-indicator terrain-plains"></span>
+                  <span>Plains</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="terrainType" value="desert" />
+                  <span class="item-type-indicator terrain-desert"></span>
+                  <span>Desert</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="terrainType" value="water" />
+                  <span class="item-type-indicator terrain-water"></span>
+                  <span>Water</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="terrainType" value="deleted" />
+                  <span class="item-type-indicator terrain-deleted"></span>
+                  <span>Delete</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Edge terrain selector -->
+            <div class="selector-container">
+              <label>Edge Terrain:</label>
+              <div class="selector-radio-group">
+                <label class="block-radio-label">
+                  <input type="radio" name="edgeTerrainType" value="water" />
+                  <span class="item-type-indicator edge-terrain-water"></span>
+                  <span>Water</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="edgeTerrainType" value="camels" />
+                  <span class="item-type-indicator edge-terrain-camels"></span>
+                  <span>Camels</span>
+                </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="edgeTerrainType" value="deleted" checked />
+                  <span class="item-type-indicator edge-terrain-deleted"></span>
+                  <span>Delete</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
