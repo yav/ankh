@@ -297,15 +297,12 @@ function renderHexagonItems(
   const positions: [number, number][][] = [
     [], // 0 elements
     [[0, 0]], // 1 element: center
-    [[-6, 0], [6, 0]], // 2 elements: horizontal line, 12px spacing
-    [[-12, 0], [0, 0], [12, 0]], // 3 elements: horizontal line, 12px spacing
-    [[-6, -6], [6, -6], [-6, 6], [6, 6]], // 4 elements: 2x2 grid, 12px spacing
-    [[-12, -6], [0, -6], [12, -6], [-6, 6], [6, 6]], // 5 elements: 3 top, 2 bottom, 12px spacing
-    [[-12, -6], [0, -6], [12, -6], [-12, 6], [0, 6], [12, 6]], // 6 elements: 2x3 grid, 12px spacing
+    [[-20, 0], [20, 0]], // 2 elements: horizontal line
+    [[-20, -12], [20, -12], [0, 12]], // 3 elements: triangle pattern
   ]
   const itemPositions = positions[data.items.length] || []
   const [centerX, centerY] = grid.faceLoc(loc)
-  const elementSize = 8
+  const elementSize = 32
   const borderWidth = 1
   const totalSize = elementSize + 2 * borderWidth
 
@@ -391,7 +388,7 @@ function renderHexagon(
   // Add click handler for adding items
   if (config.editMode === "add") {
     shape.addEventListener("click", () => {
-      if (data.items.length < 6) {
+      if (data.items.length < 3) {
         data.items.push(new Item(config.selectedPlayer, config.selectedItemKind))
         renderGrid(leftPane, config)
       }
