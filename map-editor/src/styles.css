@@ -1,0 +1,198 @@
+/* Reset and base styles */
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden; /* Prevent double scrollbars */
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Main container with flexbox layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Left pane - larger area for hexagonal grid */
+.left-pane {
+  flex: 3; /* 75% of width */
+  overflow: auto; /* Show scrollbars when content exceeds viewport */
+  background-color: #f5f5f5;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Grid container for hexagonal elements */
+.grid-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* Right pane - smaller area for controls */
+.right-pane {
+  flex: 1; /* 25% of width */
+  overflow: auto; /* Show scrollbars when content exceeds viewport */
+  background-color: #ffffff;
+  border-left: 2px solid #cccccc;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Control section styling */
+.control-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.control-section:last-child {
+  border-bottom: none;
+}
+
+/* Top row with inline controls */
+.controls-top-row {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Inline control sections (no borders) */
+.control-section-inline {
+  display: inline-block;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* Debug hover tooltip */
+.debug-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  display: none;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+/* Hex element (colored square) */
+.hex-element {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Item type color indicator */
+.item-type-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  border: 1px solid #333;
+  vertical-align: middle;
+}
+
+/* Label styling */
+.right-pane label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.right-pane label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal;
+  user-select: none;
+}
+
+/* Checkbox styling */
+.right-pane input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+/* Radio button styling */
+.right-pane input[type="radio"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.right-pane .radio-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.right-pane .radio-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal !important;
+  user-select: none;
+  margin-bottom: 0;
+}
+
+/* Select dropdown styling */
+.right-pane select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  font-size: 14px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.right-pane select:focus {
+  outline: none;
+  border-color: #0066cc;
+}
+
+/* Range slider styling */
+.right-pane input[type="range"] {
+  width: 100%;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+/* Line break spacing */
+.control-section br {
+  margin-bottom: 8px;
+}
+
+/* Placeholder content styles for testing */
+.placeholder-content {
+  margin-bottom: 20px;
+}
+
+.placeholder-tall {
+  height: 2000px;
+  background: linear-gradient(to bottom, #e0e0e0 0%, #f5f5f5 100%);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.placeholder-wide {
+  width: 2000px;
+  background: linear-gradient(to right, #e0e0e0 0%, #f5f5f5 100%);
+  padding: 20px;
+  margin-top: 20px;
+}
