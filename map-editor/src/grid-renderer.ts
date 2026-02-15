@@ -352,7 +352,7 @@ function renderHexagon(
   // Get or create data for this location
   let data = hexInfo.getLoc(loc)
   if (!data) {
-    data = new LocInfo("deleted")
+    data = new LocInfo("plains")
     hexInfo.setLoc(loc, data)
   }
 
@@ -381,6 +381,10 @@ function renderHexagon(
   if (config.editMode === "terrain") {
     shape.addEventListener("click", () => {
       data.terrain = config.selectedTerrainType
+      // Clear items if terrain is set to deleted
+      if (data.terrain === "deleted") {
+        data.items.length = 0
+      }
       renderGrid(leftPane, config)
     })
   }
@@ -388,7 +392,7 @@ function renderHexagon(
   // Add click handler for adding items
   if (config.editMode === "add") {
     shape.addEventListener("click", () => {
-      if (data.items.length < 3) {
+      if (data.terrain !== "deleted" && data.items.length < 3) {
         data.items.push(new Item(config.selectedPlayer, config.selectedItemKind))
         renderGrid(leftPane, config)
       }
