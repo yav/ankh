@@ -1,5 +1,5 @@
 import { Grid } from "hex"
-import { FLoc, ELoc } from "hex"
+import { FLoc, ELoc, Dir } from "hex"
 import { newHexShape, newEdgeShape } from "hex"
 import { RectangularRegion } from "hex"
 import { FLocMap, ELocMap } from "hex"
@@ -53,6 +53,114 @@ export interface GridConfig {
   selectedItemKind: ItemKind // Currently selected item kind for add mode
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
   selectedEdgeType: EdgeType // Currently selected edge type for terrain mode
+}
+
+// Type representing exported board data
+export type BoardData = {
+  width: number
+  height: number
+  startsWide: boolean
+  hexagons: {
+    location: { x: number; y: number }
+    terrain: TerrainType
+    items: { player: number; kind: ItemKind }[]
+  }[]
+  edges: {
+    location: { x: number; y: number; edge: number }
+    type: EdgeType
+  }[]
+}
+
+/**
+ * Exports the grid configuration data as a JSON-serializable object.
+ * Visits each location in the rectangular region and collects:
+ * - Rectangle dimensions and configuration
+ * - Hexagon data: terrain type and items (skips "deleted" terrain)
+ * - Edge data: edge type (skips "deleted" edges)
+ */
+export function exportGridData(config: GridConfig): BoardData {
+  // Create rectangular region to iterate through all locations
+  const region = new RectangularRegion(
+    new FLoc(),
+    config.rectWidth,
+    config.rectHeight,
+    config.rectStartsWide,
+    "edge_up"
+  )
+
+  // Collect hexagon data
+  const hexagons: BoardData["hexagons"] = []
+
+  for (const loc of region.faces()) {
+    const data = config.hexInfo.getLoc(loc)
+    if (data && data.terrain !== "deleted") {
+      hexagons.push({
+        location: { x: loc.x, y: loc.y },
+        terrain: data.terrain,
+        items: data.items.map(item => ({
+          player: item.player,
+          kind: item.kind
+        }))
+      })
+    }
+  }
+
+  // Collect edge data
+  const edges: BoardData["edges"] = []
+
+  for (const edge of region.edges()) {
+    const type = config.edgeInfo.getLoc(edge)
+    if (type && type !== "deleted") {
+      edges.push({
+        location: { x: edge.face_loc.x, y: edge.face_loc.y, edge: edge.number },
+        type: type
+      })
+    }
+  }
+
+  return {
+    width: config.rectWidth,
+    height: config.rectHeight,
+    startsWide: config.rectStartsWide,
+    hexagons,
+    edges
+  }
+}
+
+/**
+ * Imports board data and creates a GridConfig with default values for UI state.
+ * Reconstructs the hexInfo and edgeInfo maps from the serialized data.
+ */
+export function importGridData(data: BoardData): GridConfig {
+  // Create hex info map and populate it
+  const hexInfo = new FLocMap<LocInfo>()
+  for (const hex of data.hexagons) {
+    const loc = new FLoc(hex.location.x, hex.location.y)
+    const items = hex.items.map(item => new Item(item.player, item.kind))
+    hexInfo.setLoc(loc, new LocInfo(hex.terrain, items))
+  }
+
+  // Create edge info map and populate it
+  const edgeInfo = new ELocMap<EdgeType>()
+  for (const edge of data.edges) {
+    const faceLoc = new FLoc(edge.location.x, edge.location.y)
+    const edgeLoc = faceLoc.edge(new Dir(edge.location.edge))
+    edgeInfo.setLoc(edgeLoc, edge.type)
+  }
+
+  return {
+    rectWidth: data.width,
+    rectHeight: data.height,
+    rectStartsWide: data.startsWide,
+    debugHover: false,
+    hexInfo,
+    edgeInfo,
+    editMode: "none",
+    selectedPlayer: 1,
+    selectedItemKind: "soldier",
+    selectedTerrainType: "plains",
+    selectedEdgeType: "deleted"
+  }
 }
 
 export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
