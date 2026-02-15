@@ -1,4 +1,4 @@
-import { renderGrid, type GridConfig, LocInfo, type TerrainType, type EdgeTerrainType, type ItemKind } from "./grid-renderer.ts"
+import { renderGrid, type GridConfig, LocInfo, type TerrainType, type EdgeType, type ItemKind } from "./grid-renderer.ts"
 import { FLocMap, ELocMap } from "hex"
 
 function setupControls(leftPane: HTMLElement, config: GridConfig): void {
@@ -77,7 +77,7 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
 
   edgeTerrainTypeRadios.forEach((radio) => {
     radio.addEventListener("change", () => {
-      config.selectedEdgeTerrainType = radio.value as EdgeTerrainType
+      config.selectedEdgeType = radio.value as EdgeType
       updateGrid()
     })
   })
@@ -95,12 +95,12 @@ function main() {
     rectStartsWide: true,
     debugHover: false,
     hexInfo: new FLocMap<LocInfo>(),
-    edgeInfo: new ELocMap<EdgeTerrainType>(),
+    edgeInfo: new ELocMap<EdgeType>(),
     editMode: "none",
     selectedPlayer: 1,  // Default to Player 1
     selectedItemKind: "soldier",  // Default item kind
     selectedTerrainType: "plains",  // Default hex terrain type
-    selectedEdgeTerrainType: "deleted"  // Default edge terrain type
+    selectedEdgeType: "deleted"  // Default edge type
   }
 
   // Render initial grid

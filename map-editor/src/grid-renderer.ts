@@ -7,8 +7,8 @@ import { FLocMap, ELocMap } from "hex"
 // Terrain types for hexagons
 export type TerrainType = "plains" | "desert" | "water" | "deleted"
 
-// Terrain types for edges
-export type EdgeTerrainType = "deleted" | "water" | "camels"
+// Edge types
+export type EdgeType = "deleted" | "water" | "camels"
 
 // Item kind represents the actual game entity type
 export type ItemKind = "god" | "soldier" | "temple" | "obelisk" | "pyramid"
@@ -47,12 +47,12 @@ export interface GridConfig {
   rectStartsWide: boolean
   debugHover: boolean
   hexInfo: FLocMap<LocInfo> // Maps hexagon locations to hex information (terrain and items)
-  edgeInfo: ELocMap<EdgeTerrainType> // Maps edge locations to terrain type
+  edgeInfo: ELocMap<EdgeType> // Maps edge locations to edge type
   editMode: "none" | "add" | "remove" | "terrain"
   selectedPlayer: number // Currently selected player (1-5) for add mode
   selectedItemKind: ItemKind // Currently selected item kind for add mode
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
-  selectedEdgeTerrainType: EdgeTerrainType // Currently selected edge terrain type for terrain mode
+  selectedEdgeType: EdgeType // Currently selected edge type for terrain mode
 }
 
 export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
@@ -338,7 +338,7 @@ function renderEdge(
   // Add click handler for terrain mode
   if (config.editMode === "terrain") {
     shape.addEventListener("click", () => {
-      edgeInfo.setLoc(loc, config.selectedEdgeTerrainType)
+      edgeInfo.setLoc(loc, config.selectedEdgeType)
       renderGrid(leftPane, config)
     })
   }
