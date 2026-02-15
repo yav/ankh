@@ -81,6 +81,21 @@ body {
   white-space: nowrap;
 }
 
+/* Info tooltip for terrain and item types */
+.info-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  pointer-events: none;
+  display: none;
+  z-index: 1001;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
 /* Hex element (colored square) */
 .hex-element {
   position: absolute;
@@ -98,6 +113,47 @@ body {
   text-shadow: 0 0 2px #000;
 }
 
+/* All items - use mask for colored SVG */
+.hex-element.item-god,
+.hex-element.item-soldier,
+.hex-element.item-temple,
+.hex-element.item-obelisk,
+.hex-element.item-pyramid {
+  border: none;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  /* background-color from player color class will show through the mask */
+}
+
+.hex-element.item-god {
+  -webkit-mask-image: url(/anubis.svg);
+  mask-image: url(/anubis.svg);
+}
+
+.hex-element.item-soldier {
+  -webkit-mask-image: url(/soldier.svg);
+  mask-image: url(/soldier.svg);
+}
+
+.hex-element.item-temple {
+  -webkit-mask-image: url(/temple.svg);
+  mask-image: url(/temple.svg);
+}
+
+.hex-element.item-obelisk {
+  -webkit-mask-image: url(/obelisk.svg);
+  mask-image: url(/obelisk.svg);
+}
+
+.hex-element.item-pyramid {
+  -webkit-mask-image: url(/pyramid.svg);
+  mask-image: url(/pyramid.svg);
+}
+
 /* Item type color indicator */
 .item-type-indicator {
   display: inline-block;
@@ -111,26 +167,32 @@ body {
 /* Player color indicators - high contrast, colorblind-friendly palette */
 .player-1-color {
   background-color: #0066FF; /* Bright blue */
+  color: #0066FF;
 }
 
 .player-2-color {
   background-color: #FF6600; /* Bright orange */
+  color: #FF6600;
 }
 
 .player-3-color {
   background-color: #00AA00; /* Bright green */
+  color: #00AA00;
 }
 
 .player-4-color {
   background-color: #CC0099; /* Magenta */
+  color: #CC0099;
 }
 
 .player-5-color {
   background-color: #996633; /* Brown */
+  color: #996633;
 }
 
 .player-6-color {
   background-color: #FFCC00; /* Yellow */
+  color: #FFCC00;
 }
 
 /* Hex terrain colors */

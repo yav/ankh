@@ -176,6 +176,11 @@ export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
     leftPane.appendChild(debugTooltip)
   }
 
+  // Create info tooltip for terrain and item information
+  const infoTooltip = document.createElement("div")
+  infoTooltip.className = "info-tooltip"
+  leftPane.appendChild(infoTooltip)
+
   // Create and configure the grid
   const grid = new Grid()
   grid.setOrientation("edge_up")
@@ -227,7 +232,8 @@ export function renderGrid(leftPane: HTMLElement, config: GridConfig) {
     offsetY,
     gridContainer,
     leftPane,
-    debugTooltip
+    debugTooltip,
+    infoTooltip
   }
 
   // Render all hexagons (faces)
@@ -279,6 +285,7 @@ interface RenderContext {
   gridContainer: HTMLElement
   leftPane: HTMLElement
   debugTooltip: HTMLDivElement | null
+  infoTooltip: HTMLDivElement
 }
 
 /**
@@ -314,9 +321,26 @@ function renderHexagonItems(
     const element = document.createElement("div")
     element.className = "hex-element"
     element.classList.add(`player-${item.player}-color`)
+    element.classList.add(`item-${item.kind}`)
     element.style.left = `${x - totalSize / 2}px`
     element.style.top = `${y - totalSize / 2}px`
-    element.textContent = item.kind.charAt(0).toUpperCase()
+
+    // All items now use CSS masks with SVG images (no text needed)
+
+    // Add hover tooltip for item info
+    element.addEventListener("mouseenter", () => {
+      ctx.infoTooltip.textContent = `${item.kind} (Player ${item.player})`
+      ctx.infoTooltip.style.display = "block"
+    })
+
+    element.addEventListener("mousemove", (e: MouseEvent) => {
+      ctx.infoTooltip.style.left = `${e.pageX - leftPane.offsetLeft + 10}px`
+      ctx.infoTooltip.style.top = `${e.pageY - leftPane.offsetTop + 10}px`
+    })
+
+    element.addEventListener("mouseleave", () => {
+      ctx.infoTooltip.style.display = "none"
+    })
 
     // Add cursor style and click handler for remove mode
     if (config.editMode === "remove") {
@@ -332,6 +356,9 @@ function renderHexagonItems(
         data.items.push(...filtered)
         renderGrid(leftPane, config)
       })
+    } else {
+      // Enable pointer events for tooltip even when not in remove mode
+      element.style.pointerEvents = "auto"
     }
 
     gridContainer.append(element)
@@ -399,6 +426,21 @@ function renderHexagon(
     })
   }
 
+  // Add hover info tooltip for terrain
+  shape.addEventListener("mouseenter", () => {
+    ctx.infoTooltip.textContent = data.terrain
+    ctx.infoTooltip.style.display = "block"
+  })
+
+  shape.addEventListener("mousemove", (e: MouseEvent) => {
+    ctx.infoTooltip.style.left = `${e.pageX - leftPane.offsetLeft + 10}px`
+    ctx.infoTooltip.style.top = `${e.pageY - leftPane.offsetTop + 10}px`
+  })
+
+  shape.addEventListener("mouseleave", () => {
+    ctx.infoTooltip.style.display = "none"
+  })
+
   // Add hover debug info
   if (config.debugHover && debugTooltip) {
     addDebugHover(shape, loc, debugTooltip, leftPane)
@@ -451,6 +493,21 @@ function renderEdge(
       renderGrid(leftPane, config)
     })
   }
+
+  // Add hover info tooltip for edge terrain
+  shape.addEventListener("mouseenter", () => {
+    ctx.infoTooltip.textContent = terrain
+    ctx.infoTooltip.style.display = "block"
+  })
+
+  shape.addEventListener("mousemove", (e: MouseEvent) => {
+    ctx.infoTooltip.style.left = `${e.pageX - leftPane.offsetLeft + 10}px`
+    ctx.infoTooltip.style.top = `${e.pageY - leftPane.offsetTop + 10}px`
+  })
+
+  shape.addEventListener("mouseleave", () => {
+    ctx.infoTooltip.style.display = "none"
+  })
 
   // Add hover debug info
   if (config.debugHover && debugTooltip) {
