@@ -26,10 +26,12 @@ executable ankh
                       App.Board,
                       App.DefaultBoard,
                       App.Piece,
-                      App.PlayerState
+                      App.PlayerState,
+                      Coord
     build-depends:    base ^>=4.19.2.0,
                       aeson,
                       containers,
-                      KOI
+                      KOI,
+                      vector
     hs-source-dirs:   app
     default-language: Haskell2010
