@@ -165,6 +165,11 @@ body {
 }
 
 /* Player color indicators - high contrast, colorblind-friendly palette */
+.player-0-color {
+  background-color: #808080; /* Gray for neutral */
+  color: #808080;
+}
+
 .player-1-color {
   background-color: #0066FF; /* Bright blue */
   color: #0066FF;

@@ -18,7 +18,7 @@ let nextItemId = 0
 
 // Item class represents a game piece on the board
 export class Item {
-  player: number  // Player number (1-5)
+  player: number  // Player number (0=neutral, 1-5)
   kind: ItemKind
   id: number  // Unique identifier for this item
 
@@ -49,7 +49,7 @@ export interface GridConfig {
   hexInfo: FLocMap<LocInfo> // Maps hexagon locations to hex information (terrain and items)
   edgeInfo: ELocMap<EdgeType> // Maps edge locations to edge type
   editMode: "none" | "add" | "remove" | "terrain"
-  selectedPlayer: number // Currently selected player (1-5) for add mode
+  selectedPlayer: number // Currently selected player (0=neutral, 1-5) for add mode
   selectedItemKind: ItemKind // Currently selected item kind for add mode
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
   selectedEdgeType: EdgeType // Currently selected edge type for terrain mode
@@ -329,7 +329,8 @@ function renderHexagonItems(
 
     // Add hover tooltip for item info
     element.addEventListener("mouseenter", () => {
-      ctx.infoTooltip.textContent = `${item.kind} (Player ${item.player})`
+      const playerLabel = item.player === 0 ? "Neutral" : `Player ${item.player}`
+      ctx.infoTooltip.textContent = `${item.kind} (${playerLabel})`
       ctx.infoTooltip.style.display = "block"
     })
 

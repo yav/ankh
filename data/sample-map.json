@@ -1,0 +1,1118 @@
+{
+  "width": 11,
+  "height": 10,
+  "startsWide": true,
+  "hexagons": [
+    {
+      "location": {
+        "x": 1,
+        "y": 0
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": 0
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": 0
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": 0
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": 0
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": 0
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": 0
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": 0
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -1
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -1
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -1
+      },
+      "terrain": "desert",
+      "items": [
+        {
+          "player": 3,
+          "kind": "god"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -1
+      },
+      "terrain": "desert",
+      "items": [
+        {
+          "player": 0,
+          "kind": "pyramid"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -1
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -1
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -1
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -1
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 1,
+        "y": -1
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 1,
+        "y": -2
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -2
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -2
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -2
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -2
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -2
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -2
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -2
+      },
+      "terrain": "desert",
+      "items": [
+        {
+          "player": 3,
+          "kind": "soldier"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -2
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -2
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -3
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -3
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -3
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -3
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -3
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -3
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -3
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -3
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -3
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -4
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": [
+        {
+          "player": 2,
+          "kind": "god"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -4
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -4
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -4
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": [
+        {
+          "player": 0,
+          "kind": "temple"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -5
+      },
+      "terrain": "plains",
+      "items": [
+        {
+          "player": 2,
+          "kind": "soldier"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -5
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -6
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -6
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -6
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -6
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -6
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -6
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -6
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -6
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -6
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 12,
+        "y": -6
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 12,
+        "y": -7
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -7
+      },
+      "terrain": "desert",
+      "items": [
+        {
+          "player": 0,
+          "kind": "obelisk"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -7
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -7
+      },
+      "terrain": "desert",
+      "items": [
+        {
+          "player": 1,
+          "kind": "soldier"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -7
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -7
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -7
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -7
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -7
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -8
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -8
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -8
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -8
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -8
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -8
+      },
+      "terrain": "desert",
+      "items": [
+        {
+          "player": 1,
+          "kind": "god"
+        }
+      ]
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -8
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -8
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 12,
+        "y": -8
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 13,
+        "y": -8
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 13,
+        "y": -9
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 12,
+        "y": -9
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -9
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -9
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -9
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -9
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -9
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -9
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -9
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -10
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -10
+      },
+      "terrain": "plains",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -10
+      },
+      "terrain": "desert",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -10
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -10
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -10
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 12,
+        "y": -10
+      },
+      "terrain": "water",
+      "items": []
+    },
+    {
+      "location": {
+        "x": 13,
+        "y": -10
+      },
+      "terrain": "water",
+      "items": []
+    }
+  ],
+  "edges": [
+    {
+      "location": {
+        "x": 1,
+        "y": -1,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -1,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -1,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 2,
+        "y": -1,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -2,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 3,
+        "y": -2,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -3,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 4,
+        "y": -3,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -4,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 5,
+        "y": -4,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -5,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -5,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -5,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -5,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 10,
+        "y": -5,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -5,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 11,
+        "y": -5,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -5,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -6,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 9,
+        "y": -6,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -5,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -6,
+        "edge": 1
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 8,
+        "y": -6,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -6,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -6,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -7,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -7,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -8,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -8,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -9,
+        "edge": 2
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 6,
+        "y": -9,
+        "edge": 0
+      },
+      "type": "water"
+    },
+    {
+      "location": {
+        "x": 7,
+        "y": -10,
+        "edge": 2
+      },
+      "type": "water"
+    }
+  ]
+}
