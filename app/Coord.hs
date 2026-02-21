@@ -6,6 +6,7 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 import qualified Data.Map as Map
 import Data.Map (Map)
+import qualified Data.Aeson as JS
 
 -- | Neighbor offset table for hexagonal grid
 neighborTable :: Vector (Int, Int)
@@ -15,7 +16,20 @@ neighborTable = V.fromList [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 data Orientation
   = VertexUp  -- ^ Hexagons have a vertex at the top
   | EdgeUp    -- ^ Hexagons have a flat edge at the top
-  deriving (Show, Eq, Ord)
+  deriving (Show, Read, Eq, Ord)
+
+instance JS.ToJSON Orientation where
+  toJSON o = JS.String $
+    case o of
+      VertexUp -> "vertex-up"
+      EdgeUp -> "edge-up"
+
+instance JS.FromJSON Orientation where
+  parseJSON = JS.withText "Orientation" $ \t ->
+    case t of
+      "vertex-up" -> pure VertexUp
+      "edge-up" -> pure EdgeUp
+      _ -> fail ("Unknown orientation: " ++ show t)
 
 -- | Returns the opposite orientation of the given one.
 otherOrientation :: Orientation -> Orientation
@@ -27,7 +41,7 @@ otherOrientation o =
 -- | Represents one of the 6 directions in a hexagonal grid.
 -- Directions are indexed 0 to 5, typically starting from the right and moving clockwise.
 newtype Dir = Dir { dirNumber :: Int }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Read, Show)
 
 -- | Creates a new direction.
 -- The direction index will be normalized to the range [0, 5].
@@ -58,8 +72,15 @@ edgeUnit d o = relativeUnit d o 0
 vertexUnit :: Dir -> Orientation -> (Double, Double)
 vertexUnit d o = relativeUnit d o (pi / 6)
 
-instance Show Dir where
-  show (Dir n) = "Dir(" ++ show n ++ ")"
+instance JS.ToJSON Dir where
+  toJSON (Dir n) = JS.toJSON n
+
+instance JS.FromJSON Dir where
+  parseJSON v = do
+    n <- JS.parseJSON v
+    if n >= 0 && n < 6
+      then pure (Dir n)
+      else fail ("Direction must be between 0 and 5, got: " ++ show n)
 
 -- | List of all 6 possible directions.
 allDirections :: [Dir]
@@ -70,7 +91,7 @@ data FLoc = FLoc
   { flocX :: Int  -- ^ Axial x-coordinate
   , flocY :: Int  -- ^ Axial y-coordinate
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Read, Show)
 
 -- | Returns a new location by moving n steps in the given direction.
 flocAdvance :: FLoc -> Dir -> Int -> FLoc
@@ -114,15 +135,24 @@ flocDistance (FLoc x1 y1) (FLoc x2 y2) = (abs dx + abs dy + abs dz) `div` 2
     dy = y2 - y1
     dz = -dx - dy
 
-instance Show FLoc where
-  show (FLoc x y) = "FLoc(" ++ show x ++ "," ++ show y ++ ")"
+instance JS.ToJSON FLoc where
+  toJSON (FLoc x y) = JS.object
+    [ "x" JS..= x
+    , "y" JS..= y
+    ]
+
+instance JS.FromJSON FLoc where
+  parseJSON = JS.withObject "FLoc" $ \obj -> do
+    x <- obj JS..: "x"
+    y <- obj JS..: "y"
+    pure (FLoc x y)
 
 -- | Represents the location of an edge between two faces.
 data ELoc = ELoc
   { elocFaceLoc :: FLoc    -- ^ One of the faces touching this edge
   , elocNumber :: Int      -- ^ The edge index (0, 1, or 2) relative to face_loc
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Read, Show)
 
 -- | Internal constructor for 'ELoc'. Use 'flocEdge' to create instances.
 mkELoc :: FLoc -> Dir -> ELoc
@@ -146,15 +176,24 @@ elocVertices (ELoc face n) = [flocVertex face dir, flocVertex face (dirClockwise
   where
     dir = Dir n
 
-instance Show ELoc where
-  show (ELoc face n) = "ELoc(" ++ show face ++ "," ++ show n ++ ")"
+instance JS.ToJSON ELoc where
+  toJSON (ELoc face n) = JS.object
+    [ "face" JS..= face
+    , "edge" JS..= n
+    ]
+
+instance JS.FromJSON ELoc where
+  parseJSON = JS.withObject "ELoc" $ \obj -> do
+    face <- obj JS..: "face"
+    n <- obj JS..: "edge"
+    pure (ELoc face n)
 
 -- | Represents a directed edge on a hexagonal grid.
 data DELoc = DELoc
   { delocEdgeLoc :: ELoc   -- ^ The underlying undirected edge
   , delocReversed :: Bool  -- ^ Whether the direction is reversed relative to the default
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Read, Show)
 
 -- | Returns the same edge pointing in the opposite direction.
 delocReverse :: DELoc -> DELoc
@@ -208,15 +247,24 @@ delocNextEdgeRight deloc@(DELoc (ELoc _ n) rev) = flocDirectedEdge ff (Dir (n + 
     d = if rev then 1 else -2
     ff = delocForwardFace deloc
 
-instance Show DELoc where
-  show (DELoc edge rev) = "DELoc(" ++ show edge ++ "," ++ show rev ++ ")"
+instance JS.ToJSON DELoc where
+  toJSON (DELoc edge rev) = JS.object
+    [ "edge" JS..= edge
+    , "reversed" JS..= rev
+    ]
+
+instance JS.FromJSON DELoc where
+  parseJSON = JS.withObject "DELoc" $ \obj -> do
+    edge <- obj JS..: "edge"
+    rev <- obj JS..: "reversed"
+    pure (DELoc edge rev)
 
 -- | Represents the location of a vertex where three faces meet.
 data VLoc = VLoc
   { vlocFaceLoc :: FLoc  -- ^ One of the faces touching this vertex
   , vlocNumber :: Int    -- ^ The vertex index (0 or 1) relative to face_loc
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Read, Show)
 
 -- | Internal constructor for 'VLoc'. Use the methods in 'FLoc', 'DELoc' to create instances.
 mkVLoc :: FLoc -> Dir -> VLoc
@@ -248,8 +296,17 @@ vlocEdges (VLoc f n)
   where
     edge advDir edgeDir = flocEdge (flocAdvance f (Dir advDir) 1) (Dir edgeDir)
 
-instance Show VLoc where
-  show (VLoc face n) = "VLoc(" ++ show face ++ "," ++ show n ++ ")"
+instance JS.ToJSON VLoc where
+  toJSON (VLoc face n) = JS.object
+    [ "face" JS..= face
+    , "vertex" JS..= n
+    ]
+
+instance JS.FromJSON VLoc where
+  parseJSON = JS.withObject "VLoc" $ \obj -> do
+    face <- obj JS..: "face"
+    n <- obj JS..: "vertex"
+    pure (VLoc face n)
 
 -- | Partitions a set of face locations into connected regions.
 -- Two faces are in the same region if they are adjacent and the edge between them
