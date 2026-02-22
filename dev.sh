@@ -42,10 +42,13 @@ cabal build
 
 echo -e "${GREEN}Starting server...${NC}"
 SERVER_BIN=$(cabal list-bin ankh)
-$SERVER_BIN --player guest &
+$SERVER_BIN --board data/sample-map.json --player player1 --player player2 --player player3 &
 SERVER_PID=$!
 
-echo -e "${BLUE}Server running at http://localhost:8080?player=guest${NC}"
+echo -e "${BLUE}Server running at http://localhost:8080${NC}"
+echo -e "${BLUE}  Player 1: http://localhost:8080?player=player1${NC}"
+echo -e "${BLUE}  Player 2: http://localhost:8080?player=player2${NC}"
+echo -e "${BLUE}  Player 3: http://localhost:8080?player=player3${NC}"
 echo -e "${BLUE}Press Ctrl+C to stop${NC}"
 
 # Wait for both processes

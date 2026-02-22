@@ -2,20 +2,44 @@ module Main where
 
 import App.KOI
 import App.State
-import App.DefaultBoard
 import App.PlayerState
 import App.Input
+import App.Board (parseBoard)
+import qualified Data.Aeson as JS
+import qualified Data.Aeson.Types as JS (parseEither)
+import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Map as Map
+import KOI.Options (optionString, Options, Option)
+import Data.Text (pack)
+
+-- | Command-line option for board file
+boardFileOption :: Option
+getBoardFile :: Options -> String
+(boardFileOption, getBoardFile) =
+  optionString (pack "board") "FILE" Nothing
+    "JSON file containing the initial board state"
 
 main :: IO ()
 main = startApp App
   { appId = KOI
-  , appOptions = []
+  , appOptions = [boardFileOption]
   , appColors = [ "red", "green", "blue", "yellow" ]
   , appJS = []
-  , appInitialState = \_rng _opts ps ->
+  , appInitialState = \_rng opts ps -> do
+      -- Create player ID mapping: player 1, 2, 3, ... in order
+      let playerMap = Map.fromList (zip [1..] ps)
+
+      -- Load board from JSON file
+      let boardFile = getBoardFile opts
+      boardJson <- BSL.readFile boardFile
+      board <- case JS.eitherDecode boardJson of
+        Left err -> error ("Failed to parse board JSON: " ++ err)
+        Right jsonVal -> case JS.parseEither (parseBoard playerMap) jsonVal of
+          Left err -> error ("Failed to parse board: " ++ err)
+          Right b -> pure b
+
       pure State
-        { stateBoard = defaultBoard
+        { stateBoard = board
         , statePlayers = Map.fromList [ (p, PlayerState) | p <- ps ]
         }
   , appStart = gameLoop

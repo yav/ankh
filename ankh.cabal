@@ -24,12 +24,12 @@ executable ankh
                       App.StateView,
                       App.Input,
                       App.Board,
-                      App.DefaultBoard,
                       App.Piece,
                       App.PlayerState,
                       Coord
     build-depends:    base ^>=4.19.2.0,
                       aeson,
+                      bytestring,
                       containers,
                       KOI,
                       text,
