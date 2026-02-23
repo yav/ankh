@@ -1,7 +1,9 @@
 import {
   Grid,
   FLoc,
+  Dir,
   newHexShape,
+  newEdgeShape,
   FLocMap,
   Region
 } from "../../hex-grid/src/index.ts"
@@ -38,10 +40,34 @@ type Hex = {
   pieces: Piece[]
 }
 
+// Edge type for borders
+type EdgeType = "water" | "camels"
+
+// Edge definition
+type Edge = {
+  location: {
+    x: number,
+    y: number,
+    edge: number
+  },
+  type: EdgeType
+}
+
+// Hexagon with location
+type HexagonWithLocation = {
+  location: {
+    x: number,
+    y: number
+  },
+  terrain: Terrain,
+  pieces: Piece[]
+}
+
 // Game board with hexagonal grid
 export type Board = {
-  hexes: { [key: string]: Hex },      // Key format: "q,r"
-  regions: { [key: string]: HexPos[] } // Key is region ID
+  hexes: HexagonWithLocation[],
+  regions: { [key: string]: HexPos[] }, // Key is region ID
+  edges: Edge[]
 }
 
 // Terrain color mapping
@@ -96,14 +122,17 @@ function parseBoardData(board: Board): BoardData {
   const positions: HexPos[] = []
   const hexData = new FLocMap<Hex>()
 
-  for (const [key, hex] of Object.entries(board.hexes)) {
-    const [qStr, rStr] = key.split(",")
-    const q = parseInt(qStr, 10)
-    const r = parseInt(rStr, 10)
+  for (const hexWithLoc of board.hexes) {
+    const q = hexWithLoc.location.x
+    const r = hexWithLoc.location.y
     const pos = { q, r }
     positions.push(pos)
 
     const loc = new FLoc(q, r)
+    const hex: Hex = {
+      terrain: hexWithLoc.terrain,
+      pieces: hexWithLoc.pieces
+    }
     hexData.setLoc(loc, hex)
   }
 
@@ -236,6 +265,33 @@ function renderPiece(
 }
 
 /**
+ * Renders an edge on the board
+ */
+function renderEdge(
+  container: HTMLElement,
+  grid: Grid,
+  edge: Edge,
+  offsetX: number,
+  offsetY: number
+): void {
+  const loc = new FLoc(edge.location.x, edge.location.y)
+  const dir = new Dir(edge.location.edge)
+  const eloc = loc.edge(dir)
+
+  const edgeShape = newEdgeShape(grid, eloc)
+  edgeShape.classList.add(`edge-${edge.type}`)
+
+  // Apply offset
+  const currentLeft = parseFloat(edgeShape.style.left)
+  const currentTop = parseFloat(edgeShape.style.top)
+  edgeShape.style.left = `${currentLeft + offsetX}px`
+  edgeShape.style.top = `${currentTop + offsetY}px`
+  edgeShape.style.zIndex = "2"
+
+  container.appendChild(edgeShape)
+}
+
+/**
  * Renders a game board using the hex-grid library
  */
 export function renderBoard(container: HTMLElement, board: Board): void {
@@ -326,5 +382,10 @@ export function renderBoard(container: HTMLElement, board: Board): void {
         )
       })
     }
+  }
+
+  // Render edges
+  for (const edge of board.edges) {
+    renderEdge(container, grid, edge, offsetX, offsetY)
   }
 }

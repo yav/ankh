@@ -5,3 +5,11 @@
   cursor: pointer;
   display: inline-block;
 }
+
+.edge-water {
+  background-color: #4A90E2;  /* Blue for water edges */
+}
+
+.edge-camels {
+  background-color: #8B4513;  /* Brown for camel edges */
+}

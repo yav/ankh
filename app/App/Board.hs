@@ -1,7 +1,7 @@
 module App.Board where
 
 import App.Piece (Piece, parsePiece)
-import Coord (FLoc(..), findRegions)
+import Coord (FLoc(..), ELoc(..), findRegions)
 import Coord qualified
 import Data.Aeson qualified as JS
 import Data.Aeson ((.:))
@@ -12,15 +12,18 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.String (fromString)
 import Data.Text (Text)
+import Data.Vector qualified as V
 import KOI.Basics (PlayerId)
 
--- | The game board, represented as a map from positions to hexagons
--- and a map from region IDs to the set of positions in that region.
+-- | The game board, represented as a map from positions to hexagons,
+-- a map from region IDs to the set of positions in that region,
+-- and a map of special edges (borders) on the map.
 -- Note: Regions only contain non-water hexagons. Water hexagons are not
 -- included in any region.
 data Board = Board
   { boardHexes   :: !(Map FLoc Hex)
   , boardRegions :: !(Map RegionId (Set FLoc))
+  , boardEdges   :: !(Map ELoc EdgeType)
   }
   deriving (Read, Show)
 
@@ -38,10 +41,29 @@ data Terrain
   | Water
   deriving (Eq, Ord, Read, Show)
 
+-- | Edge types for borders on the map
+data EdgeType
+  = WaterEdge
+  | CamelsEdge
+  deriving (Eq, Ord, Read, Show)
+
 -- | Region identifier
 type RegionId = Int
 
 -- JSON instances
+instance JS.ToJSON EdgeType where
+  toJSON x =
+    case x of
+      WaterEdge  -> JS.String "water"
+      CamelsEdge -> JS.String "camels"
+
+instance JS.FromJSON EdgeType where
+  parseJSON = JS.withText "EdgeType" $ \t ->
+    case t of
+      "water"  -> pure WaterEdge
+      "camels" -> pure CamelsEdge
+      _ -> fail ("Unknown edge type: " ++ show t)
+
 instance JS.ToJSON Terrain where
   toJSON x =
     case x of
@@ -60,9 +82,16 @@ instance JS.ToJSON Hex where
 instance JS.ToJSON Board where
   toJSON x =
     case x of
-      Board hexes regions -> JS.object
-        [ "hexes" JS..= JS.object
-            [ fromString (show q ++ "," ++ show r) JS..= hex
+      Board hexes regions edges -> JS.object
+        [ "hexes" JS..=
+            [ JS.object
+                [ "location" JS..= JS.object
+                    [ "x" JS..= q
+                    , "y" JS..= r
+                    ]
+                , "terrain" JS..= hexTerrain hex
+                , "pieces" JS..= hexPieces hex
+                ]
             | (FLoc q r, hex) <- Map.toList hexes
             ]
         , "regions" JS..= JS.object
@@ -71,6 +100,17 @@ instance JS.ToJSON Board where
                 | FLoc q r <- Set.toList positions
                 ]
             | (regionId, positions) <- Map.toList regions
+            ]
+        , "edges" JS..=
+            [ JS.object
+                [ "location" JS..= JS.object
+                    [ "x" JS..= edgeX
+                    , "y" JS..= edgeY
+                    , "edge" JS..= edgeNum
+                    ]
+                , "type" JS..= edgeType
+                ]
+            | (ELoc (FLoc edgeX edgeY) edgeNum, edgeType) <- Map.toList edges
             ]
         ]
 
@@ -84,8 +124,10 @@ parseBoard playerMap = JS.withObject "Board" $ \obj -> do
   hexagons <- obj .: "hexagons"
   hexList <- mapM (parseHexagon playerMap) hexagons
   let hexes = Map.fromList hexList
-  let regions = computeRegions hexes
-  pure (Board hexes regions)
+  edgesJson <- obj .: "edges"
+  edges <- parseEdges edgesJson
+  let regions = computeRegions hexes edges
+  pure (Board hexes regions edges)
 
 -- | Parse a single hexagon from JSON
 parseHexagon :: Map Int PlayerId -> JS.Value -> Parser (FLoc, Hex)
@@ -107,6 +149,24 @@ parseTerrain txt =
     "water" -> pure Water
     _ -> fail ("Unknown terrain type: " ++ show txt)
 
+-- | Parse edges from JSON
+parseEdges :: JS.Value -> Parser (Map ELoc EdgeType)
+parseEdges = JS.withArray "Edges" $ \arr -> do
+  edgeList <- mapM parseEdge (V.toList arr)
+  pure (Map.fromList edgeList)
+
+-- | Parse a single edge from JSON
+parseEdge :: JS.Value -> Parser (ELoc, EdgeType)
+parseEdge = JS.withObject "Edge" $ \obj -> do
+  locationObj <- obj .: "location"
+  edgeLoc <- JS.withObject "Location" (\locObj -> do
+    x <- locObj .: "x"
+    y <- locObj .: "y"
+    edge <- locObj .: "edge"
+    pure (ELoc (FLoc x y) edge)) locationObj
+  edgeType <- obj .: "type"
+  pure (edgeLoc, edgeType)
+
 -- | Parse player ID from integer according to the mapping
 -- 0 maps to Nothing, other integers must be in the map
 parsePlayerIdFromInt :: Map Int PlayerId -> JS.Value -> Parser (Maybe PlayerId)
@@ -122,10 +182,10 @@ parsePlayerIdFromInt playerMap val =
             Nothing -> fail ("Player ID " ++ show playerId ++ " not found in player map")
     _ -> fail "Expected null or number for player ID"
 
--- | Compute regions from the board hexes
--- Finds connected regions of non-water terrain
-computeRegions :: Map FLoc Hex -> Map RegionId (Set FLoc)
-computeRegions hexes =
+-- | Compute regions from the board hexes and edges
+-- Finds connected regions of non-water terrain, separated by water, missing hexes, and special edges
+computeRegions :: Map FLoc Hex -> Map ELoc EdgeType -> Map RegionId (Set FLoc)
+computeRegions hexes edges =
   let allPositions = Map.keysSet hexes
       nonWaterPositions = Set.filter (\pos -> case Map.lookup pos hexes of
                                                 Just (Hex terrain _) -> terrain /= Water
@@ -134,13 +194,16 @@ computeRegions hexes =
       flocRegions = findRegions nonWaterPositions barriers
   in flocRegions
   where
-    -- Find barrier edges (edges bordering water or missing hexes)
+    -- Find barrier edges (edges bordering water or missing hexes, plus special edges from the map)
     findBarriers nonWaterPositions =
-      Set.fromList
-        [ edge
-        | pos <- Set.toList nonWaterPositions
-        , dir <- Coord.allDirections
-        , let edge = Coord.flocEdge pos dir
-        , let neighbor = Coord.flocAdvance pos dir 1
-        , not (Set.member neighbor nonWaterPositions)
-        ]
+      Set.union naturalBarriers specialEdges
+      where
+        naturalBarriers = Set.fromList
+          [ edge
+          | pos <- Set.toList nonWaterPositions
+          , dir <- Coord.allDirections
+          , let edge = Coord.flocEdge pos dir
+          , let neighbor = Coord.flocAdvance pos dir 1
+          , not (Set.member neighbor nonWaterPositions)
+          ]
+        specialEdges = Map.keysSet edges

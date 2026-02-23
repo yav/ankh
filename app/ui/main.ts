@@ -44,10 +44,34 @@ type Hex = {
   pieces: Piece[]
 }
 
+// Edge type for borders
+type EdgeType = "water" | "camels"
+
+// Edge definition
+type Edge = {
+  location: {
+    x: number,
+    y: number,
+    edge: number
+  },
+  type: EdgeType
+}
+
+// Hexagon with location
+type HexagonWithLocation = {
+  location: {
+    x: number,
+    y: number
+  },
+  terrain: Terrain,
+  pieces: Piece[]
+}
+
 // Game board with hexagonal grid
 type Board = {
-  hexes: { [key: string]: Hex },      // Key format: "q,r"
-  regions: { [key: string]: HexPos[] } // Key is region ID
+  hexes: HexagonWithLocation[],
+  regions: { [key: string]: HexPos[] }, // Key is region ID
+  edges: Edge[]
 }
 
 type PlayerState = {}
