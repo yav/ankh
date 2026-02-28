@@ -1,16 +1,20 @@
 import { srvConnect, Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
-import { renderBoard } from "./boardRenderer.ts"
+import { BoardComponent } from "./boardComponent.ts"
 import type { StateView } from "./protocol.ts"
+import { List } from "./common-js/combinators.ts"
+import { PlayerComponent, type PlayerData } from "./playerComponent.ts"
 
 // Game input types (currently placeholder)
 type Q = "Placeholder"
 
 type GUI = {
-  board: HTMLElement,
-  players: HTMLElement,
-  question: HTMLElement,
-  questions: HTMLElement[]
+  boardContainer: HTMLElement,
+  playersContainer: HTMLElement,
+  questionContainer: HTMLElement,
+  questionsContainer: HTMLElement[],
+  boardComponent: BoardComponent | null,
+  playersComponent: List<PlayerData> | null
 }
 
 type GameState = {
@@ -36,19 +40,35 @@ function main () {
 function uiRedraw (state: GameState) {
 
   gui = {
-    board: uiFromTemplate("template-board"),
-    players: uiFromTemplate("template-players"),
-    question: uiFromTemplate("template-question"),
-    questions: []
+    boardContainer: uiFromTemplate("template-board"),
+    playersContainer: uiFromTemplate("template-players"),
+    questionContainer: uiFromTemplate("template-question"),
+    questionsContainer: [],
+    boardComponent: null,
+    playersComponent: null
   }
 
   const body = document.getElementById("content")
   if (body == null) { throw new Error("Failed to find the body") }
 
   body.innerHTML = ""
-  body.appendChild(gui.board)
-  body.appendChild(gui.players)
-  body.appendChild(gui.question)
+  body.appendChild(gui.boardContainer)
+  body.appendChild(gui.playersContainer)
+  body.appendChild(gui.questionContainer)
+
+  // Create components
+  gui.boardComponent = new BoardComponent(gui.boardContainer)
+
+  // Add players header
+  const playersHeader = document.createElement("h3")
+  playersHeader.textContent = "Players:"
+  gui.playersContainer.appendChild(playersHeader)
+
+  // Create players list component
+  gui.playersComponent = new List<PlayerData>(() => {
+    return new PlayerComponent(gui.playersContainer)
+  })
+
   uiUpdate(state.game)
   conn.uiQuestions(state.questions)
 }
@@ -56,8 +76,8 @@ function uiRedraw (state: GameState) {
 
 // Set the explanation for what we are asking.
 function uiSetQuestion (q: string) {
-  gui.question.textContent = q
-  gui.questions = []
+  gui.questionContainer.textContent = q
+  gui.questionsContainer = []
 }
 
 // Various things that can be used to answer the question.
@@ -67,16 +87,16 @@ function uiQuestion (q: Question<Q>) {
     const dom = uiFromTemplate("template-btn")
     dom.textContent = lab
     dom.addEventListener("click", () => {
-      const n = gui.questions.length
-      for (let i = 0; i < n; ++i) gui.questions[i].remove()
-      gui.question.textContent = ""
+      const n = gui.questionsContainer.length
+      for (let i = 0; i < n; ++i) gui.questionsContainer[i].remove()
+      gui.questionContainer.textContent = ""
       conn.sendJSON(q)
     })
 
     const body = document.getElementById("content")
     if (body === null) { throw new Error("Failed to find `content`") }
     body.appendChild(dom)
-    gui.questions.push(dom)
+    gui.questionsContainer.push(dom)
   }
 
   // Display the help text for the choice
@@ -85,14 +105,17 @@ function uiQuestion (q: Question<Q>) {
 
 
 function uiUpdate(state: StateView) {
-  // Update board display using hex-grid renderer
-  renderBoard(gui.board, state.board)
+  // Update board display using component
+  if (gui.boardComponent) {
+    gui.boardComponent.set(state.board)
+  }
 
-  // Update players display
-  gui.players.innerHTML = "<h3>Players:</h3>"
-  for (const [playerId, playerState] of state.players) {
-    const playerDiv = document.createElement("div")
-    playerDiv.textContent = `${playerId}: ${JSON.stringify(playerState)}`
-    gui.players.appendChild(playerDiv)
+  // Update players display using component
+  if (gui.playersComponent) {
+    const playerData: PlayerData[] = state.players.map(([id, playerState]) => ({
+      id,
+      state: playerState
+    }))
+    gui.playersComponent.set(playerData)
   }
 }

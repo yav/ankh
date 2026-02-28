@@ -289,6 +289,78 @@ export class Tagged implements Component<TaggedValue>, Mappable<Component<unknow
 }
 
 /**
+ * A dynamic map of components that automatically creates, updates, and destroys
+ * elements as keys are added and removed.
+ *
+ * Similar to Record, but with a dynamic set of keys and all values of the same type.
+ * Similar to List, but with key-based access instead of sequential indices.
+ *
+ * When a new key appears, a component is created using the factory function.
+ * When a key disappears, its component is destroyed.
+ * When a key remains, its component is updated.
+ */
+export class MapComponent<V> implements Component<{ [key: string]: V }>, Mappable<Component<V>>, Container<Component<V>> {
+  private mk: (key: string) => Component<V>
+  private els: { [key: string]: Component<V> }
+
+  constructor(mk: (key: string) => Component<V>) {
+    this.mk = mk
+    this.els = {}
+  }
+
+  getElements(): Component<V>[] {
+    return Object.values(this.els)
+  }
+
+  map(f: (element: Component<V>) => void): void {
+    for (const key in this.els) {
+      f(this.els[key])
+    }
+  }
+
+  set(obj: { [key: string]: V }): boolean {
+    let changed = false
+
+    // Update or create elements for keys in the new object
+    for (const key in obj) {
+      if (key in this.els) {
+        // Update existing component
+        if (this.els[key].set(obj[key])) changed = true
+      } else {
+        // Create new component
+        const component = this.mk(key)
+        component.set(obj[key])
+        this.els[key] = component
+        changed = true
+      }
+    }
+
+    // Remove elements for keys not in the new object
+    for (const key in this.els) {
+      if (!(key in obj)) {
+        this.els[key].destroy()
+        delete this.els[key]
+        changed = true
+      }
+    }
+
+    return changed
+  }
+
+  destroy(): void {
+    for (const key in this.els) {
+      this.els[key].destroy()
+    }
+    this.els = {}
+    this.mk = () => { throw new Error("MapComponent has been destroyed") }
+  }
+
+  getElement(key: string): Component<V> | undefined {
+    return this.els[key]
+  }
+}
+
+/**
  * A text component that updates the text content of a DOM element.
  *
  * If `own` is true, the element is removed from the DOM when destroyed.
