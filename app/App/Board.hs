@@ -85,32 +85,22 @@ instance JS.ToJSON Board where
       Board hexes regions edges -> JS.object
         [ "hexes" JS..=
             [ JS.object
-                [ "location" JS..= JS.object
-                    [ "x" JS..= q
-                    , "y" JS..= r
-                    ]
+                [ "location" JS..= floc
                 , "terrain" JS..= hexTerrain hex
                 , "pieces" JS..= hexPieces hex
                 ]
-            | (FLoc q r, hex) <- Map.toList hexes
+            | (floc, hex) <- Map.toList hexes
             ]
         , "regions" JS..= JS.object
-            [ fromString (show regionId) JS..=
-                [ JS.object ["q" JS..= q, "r" JS..= r]
-                | FLoc q r <- Set.toList positions
-                ]
+            [ fromString (show regionId) JS..= Set.toList positions
             | (regionId, positions) <- Map.toList regions
             ]
         , "edges" JS..=
             [ JS.object
-                [ "location" JS..= JS.object
-                    [ "x" JS..= edgeX
-                    , "y" JS..= edgeY
-                    , "edge" JS..= edgeNum
-                    ]
+                [ "location" JS..= eloc
                 , "type" JS..= edgeType
                 ]
-            | (ELoc (FLoc edgeX edgeY) edgeNum, edgeType) <- Map.toList edges
+            | (eloc, edgeType) <- Map.toList edges
             ]
         ]
 
@@ -158,12 +148,8 @@ parseEdges = JS.withArray "Edges" $ \arr -> do
 -- | Parse a single edge from JSON
 parseEdge :: JS.Value -> Parser (ELoc, EdgeType)
 parseEdge = JS.withObject "Edge" $ \obj -> do
-  locationObj <- obj .: "location"
-  edgeLoc <- JS.withObject "Location" (\locObj -> do
-    x <- locObj .: "x"
-    y <- locObj .: "y"
-    edge <- locObj .: "edge"
-    pure (ELoc (FLoc x y) edge)) locationObj
+  location <- obj .: "location"
+  edgeLoc <- JS.parseJSON location
   edgeType <- obj .: "type"
   pure (edgeLoc, edgeType)
 

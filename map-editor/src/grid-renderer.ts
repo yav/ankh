@@ -61,12 +61,12 @@ export type BoardData = {
   height: number
   startsWide: boolean
   hexagons: {
-    location: { x: number; y: number }
+    location: [number, number]  // Array format: [x, y]
     terrain: TerrainType
     items: { player: number; kind: ItemKind }[]
   }[]
   edges: {
-    location: { x: number; y: number; edge: number }
+    location: [number, number, number]  // Array format: [x, y, edge]
     type: EdgeType
   }[]
 }
@@ -95,7 +95,7 @@ export function exportGridData(config: GridConfig): BoardData {
     const data = config.hexInfo.getLoc(loc)
     if (data && data.terrain !== "deleted") {
       hexagons.push({
-        location: { x: loc.x, y: loc.y },
+        location: [loc.x, loc.y],
         terrain: data.terrain,
         items: data.items.map(item => ({
           player: item.player,
@@ -112,7 +112,7 @@ export function exportGridData(config: GridConfig): BoardData {
     const type = config.edgeInfo.getLoc(edge)
     if (type && type !== "deleted") {
       edges.push({
-        location: { x: edge.face_loc.x, y: edge.face_loc.y, edge: edge.number },
+        location: [edge.face_loc.x, edge.face_loc.y, edge.number],
         type: type
       })
     }
@@ -135,7 +135,8 @@ export function importGridData(data: BoardData): GridConfig {
   // Create hex info map and populate it
   const hexInfo = new FLocMap<LocInfo>()
   for (const hex of data.hexagons) {
-    const loc = new FLoc(hex.location.x, hex.location.y)
+    const [x, y] = hex.location
+    const loc = new FLoc(x, y)
     const items = hex.items.map(item => new Item(item.player, item.kind))
     hexInfo.setLoc(loc, new LocInfo(hex.terrain, items))
   }
@@ -143,8 +144,9 @@ export function importGridData(data: BoardData): GridConfig {
   // Create edge info map and populate it
   const edgeInfo = new ELocMap<EdgeType>()
   for (const edge of data.edges) {
-    const faceLoc = new FLoc(edge.location.x, edge.location.y)
-    const edgeLoc = faceLoc.edge(new Dir(edge.location.edge))
+    const [x, y, edgeNum] = edge.location
+    const faceLoc = new FLoc(x, y)
+    const edgeLoc = faceLoc.edge(new Dir(edgeNum))
     edgeInfo.setLoc(edgeLoc, edge.type)
   }
 

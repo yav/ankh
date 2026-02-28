@@ -158,9 +158,8 @@ function validateBoardData(data: unknown): data is BoardData {
   for (const hex of d.hexagons) {
     if (typeof hex !== "object" || hex === null) return false
     const h = hex as Record<string, unknown>
-    if (typeof h.location !== "object" || h.location === null) return false
-    const loc = h.location as Record<string, unknown>
-    if (typeof loc.x !== "number" || typeof loc.y !== "number") return false
+    if (!Array.isArray(h.location) || h.location.length !== 2) return false
+    if (typeof h.location[0] !== "number" || typeof h.location[1] !== "number") return false
     if (typeof h.terrain !== "string") return false
     if (!Array.isArray(h.items)) return false
     for (const item of h.items) {
@@ -175,9 +174,8 @@ function validateBoardData(data: unknown): data is BoardData {
   for (const edge of d.edges) {
     if (typeof edge !== "object" || edge === null) return false
     const e = edge as Record<string, unknown>
-    if (typeof e.location !== "object" || e.location === null) return false
-    const loc = e.location as Record<string, unknown>
-    if (typeof loc.x !== "number" || typeof loc.y !== "number" || typeof loc.edge !== "number") return false
+    if (!Array.isArray(e.location) || e.location.length !== 3) return false
+    if (typeof e.location[0] !== "number" || typeof e.location[1] !== "number" || typeof e.location[2] !== "number") return false
     if (typeof e.type !== "string") return false
   }
 

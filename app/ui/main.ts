@@ -1,6 +1,7 @@
 import { srvConnect, Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
 import { renderBoard } from "./boardRenderer.ts"
+import type { StateView } from "./protocol.ts"
 
 // Game input types (currently placeholder)
 type Q = "Placeholder"
@@ -10,76 +11,6 @@ type GUI = {
   players: HTMLElement,
   question: HTMLElement,
   questions: HTMLElement[]
-}
-
-// Hexagonal coordinate system
-type HexPos = {
-  q: number,  // column
-  r: number   // row
-}
-
-// Terrain types
-type Terrain = "desert" | "grass" | "water"
-
-// Guardian type (currently empty in server)
-type GuardianType = {}
-
-// Player piece types
-type PlayerPieceType =
-  | "god"
-  | "soldier"
-  | { tag: "guardian", contents: GuardianType }
-
-// Structure types
-type StructureType = "temple" | "obelisk" | "pyramid"
-
-// Game pieces
-type Piece =
-  | { tag: "PlayerPiece", player: PlayerId, pieceType: PlayerPieceType }
-  | { tag: "Structure", structureType: StructureType }
-
-// Individual hex on the board
-type Hex = {
-  terrain: Terrain,
-  pieces: Piece[]
-}
-
-// Edge type for borders
-type EdgeType = "water" | "camels"
-
-// Edge definition
-type Edge = {
-  location: {
-    x: number,
-    y: number,
-    edge: number
-  },
-  type: EdgeType
-}
-
-// Hexagon with location
-type HexagonWithLocation = {
-  location: {
-    x: number,
-    y: number
-  },
-  terrain: Terrain,
-  pieces: Piece[]
-}
-
-// Game board with hexagonal grid
-type Board = {
-  hexes: HexagonWithLocation[],
-  regions: { [key: string]: HexPos[] }, // Key is region ID
-  edges: Edge[]
-}
-
-type PlayerState = {}
-type PlayerId = string
-
-type StateView = {
-  board: Board,
-  players: [PlayerId, PlayerState][]
 }
 
 type GameState = {

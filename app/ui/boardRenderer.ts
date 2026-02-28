@@ -7,68 +7,18 @@ import {
   FLocMap,
   Region
 } from "../../hex-grid/src/index.ts"
+import type {
+  Terrain,
+  HexPos,
+  EdgePos,
+  Board,
+  Hex,
+  Piece,
+  Edge
+} from "./protocol.ts"
 
-// Terrain types matching the Haskell definition
-export type Terrain = "desert" | "grass" | "water"
-
-// Hexagonal coordinate system
-export type HexPos = {
-  q: number,  // column
-  r: number   // row
-}
-
-// Guardian type (currently empty in server)
-type GuardianType = {}
-
-// Player piece types
-type PlayerPieceType =
-  | "god"
-  | "soldier"
-  | { tag: "guardian", contents: GuardianType }
-
-// Structure types
-type StructureType = "temple" | "obelisk" | "pyramid"
-
-// Game pieces
-type Piece =
-  | { tag: "PlayerPiece", player: string, pieceType: PlayerPieceType }
-  | { tag: "Structure", structureType: StructureType }
-
-// Individual hex on the board
-type Hex = {
-  terrain: Terrain,
-  pieces: Piece[]
-}
-
-// Edge type for borders
-type EdgeType = "water" | "camels"
-
-// Edge definition
-type Edge = {
-  location: {
-    x: number,
-    y: number,
-    edge: number
-  },
-  type: EdgeType
-}
-
-// Hexagon with location
-type HexagonWithLocation = {
-  location: {
-    x: number,
-    y: number
-  },
-  terrain: Terrain,
-  pieces: Piece[]
-}
-
-// Game board with hexagonal grid
-export type Board = {
-  hexes: HexagonWithLocation[],
-  regions: { [key: string]: HexPos[] }, // Key is region ID
-  edges: Edge[]
-}
+// Re-export for backwards compatibility
+export type { Terrain, HexPos, EdgePos, Board }
 
 // Terrain color mapping
 const TERRAIN_COLORS: Record<Terrain, string> = {
@@ -91,7 +41,7 @@ class BoardRegion extends Region {
     this.faceList = []
 
     for (const pos of positions) {
-      const loc = new FLoc(pos.q, pos.r)
+      const loc = new FLoc(pos[0], pos[1])
       this.faceSet.setLoc(loc, true)
       this.faceList.push(loc)
     }
@@ -123,12 +73,10 @@ function parseBoardData(board: Board): BoardData {
   const hexData = new FLocMap<Hex>()
 
   for (const hexWithLoc of board.hexes) {
-    const q = hexWithLoc.location.x
-    const r = hexWithLoc.location.y
-    const pos = { q, r }
-    positions.push(pos)
+    const [x, y] = hexWithLoc.location
+    positions.push(hexWithLoc.location)
 
-    const loc = new FLoc(q, r)
+    const loc = new FLoc(x, y)
     const hex: Hex = {
       terrain: hexWithLoc.terrain,
       pieces: hexWithLoc.pieces
@@ -274,8 +222,9 @@ function renderEdge(
   offsetX: number,
   offsetY: number
 ): void {
-  const loc = new FLoc(edge.location.x, edge.location.y)
-  const dir = new Dir(edge.location.edge)
+  const [x, y, edgeNum] = edge.location
+  const loc = new FLoc(x, y)
+  const dir = new Dir(edgeNum)
   const eloc = loc.edge(dir)
 
   const edgeShape = newEdgeShape(grid, eloc)

@@ -136,16 +136,13 @@ flocDistance (FLoc x1 y1) (FLoc x2 y2) = (abs dx + abs dy + abs dz) `div` 2
     dz = -dx - dy
 
 instance JS.ToJSON FLoc where
-  toJSON (FLoc x y) = JS.object
-    [ "x" JS..= x
-    , "y" JS..= y
-    ]
+  toJSON (FLoc x y) = JS.toJSON [x, y]
 
 instance JS.FromJSON FLoc where
-  parseJSON = JS.withObject "FLoc" $ \obj -> do
-    x <- obj JS..: "x"
-    y <- obj JS..: "y"
-    pure (FLoc x y)
+  parseJSON = JS.withArray "FLoc" $ \arr -> do
+    case V.toList arr of
+      [x, y] -> FLoc <$> JS.parseJSON x <*> JS.parseJSON y
+      _ -> fail "FLoc must be a 2-element array [x, y]"
 
 -- | Represents the location of an edge between two faces.
 data ELoc = ELoc
@@ -177,16 +174,13 @@ elocVertices (ELoc face n) = [flocVertex face dir, flocVertex face (dirClockwise
     dir = Dir n
 
 instance JS.ToJSON ELoc where
-  toJSON (ELoc face n) = JS.object
-    [ "face" JS..= face
-    , "edge" JS..= n
-    ]
+  toJSON (ELoc (FLoc x y) n) = JS.toJSON [x, y, n]
 
 instance JS.FromJSON ELoc where
-  parseJSON = JS.withObject "ELoc" $ \obj -> do
-    face <- obj JS..: "face"
-    n <- obj JS..: "edge"
-    pure (ELoc face n)
+  parseJSON = JS.withArray "ELoc" $ \arr -> do
+    case V.toList arr of
+      [x, y, n] -> ELoc <$> (FLoc <$> JS.parseJSON x <*> JS.parseJSON y) <*> JS.parseJSON n
+      _ -> fail "ELoc must be a 3-element array [x, y, edge]"
 
 -- | Represents a directed edge on a hexagonal grid.
 data DELoc = DELoc
