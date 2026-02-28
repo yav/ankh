@@ -11,13 +11,11 @@ export type PlayerData = {
  * Component for rendering a single player
  */
 export class PlayerComponent implements Component<PlayerData> {
-  private container: HTMLElement
   private playerDiv: HTMLElement
   private idText: Text
   private stateText: Text
 
   constructor(container: HTMLElement) {
-    this.container = container
     this.playerDiv = document.createElement("div")
     this.playerDiv.style.marginBottom = "8px"
 
@@ -31,13 +29,13 @@ export class PlayerComponent implements Component<PlayerData> {
 
     this.playerDiv.appendChild(idSpan)
     this.playerDiv.appendChild(stateSpan)
-    this.container.appendChild(this.playerDiv)
+    container.appendChild(this.playerDiv)
   }
 
   set(player: PlayerData): boolean {
-    this.idText.set(`${player.id}:`)
-    this.stateText.set(JSON.stringify(player.state))
-    return true
+    const idChanged = this.idText.set(`${player.id}:`)
+    const stateChanged = this.stateText.set(JSON.stringify(player.state))
+    return idChanged || stateChanged
   }
 
   destroy(): void {
