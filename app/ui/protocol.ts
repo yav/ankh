@@ -15,22 +15,19 @@ export type EdgePos = [number, number, number]
 // Terrain types
 export type Terrain = "desert" | "grass" | "water"
 
-// Guardian type (currently empty in server)
-export type GuardianType = {}
+// Player piece types (always represented as strings)
+export type PlayerPieceType = "god" | "soldier" | "guardian"
 
-// Player piece types
-export type PlayerPieceType =
-  | "god"
-  | "soldier"
-  | { tag: "guardian", contents: GuardianType }
-
-// Structure types
+// Structure types (always represented as strings)
 export type StructureType = "temple" | "obelisk" | "pyramid"
 
 // Game pieces
-export type Piece =
-  | { tag: "PlayerPiece", player: PlayerId, pieceType: PlayerPieceType }
-  | { tag: "Structure", structureType: StructureType }
+// Both player pieces and structures use the same shape: { player, kind }
+// player is PlayerId for player pieces, null for structures
+export type Piece = {
+  player: PlayerId | null,
+  kind: PlayerPieceType | StructureType
+}
 
 // Individual hex on the board
 export type Hex = {

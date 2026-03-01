@@ -1,14 +1,24 @@
 import type { Piece } from "./protocol.ts"
 import { Component } from "./common-js/combinators.ts"
 
+// Access global playerColors variable from dynamic.js
+declare global {
+  interface Window {
+    playerColors: Record<string, string>
+  }
+}
+
 // Piece rendering helpers
 function getPieceClasses(piece: Piece): string[] {
-  const classes = ["piece"]
+  const classes = ["piece", `piece-${piece.kind}`]
 
-  if (piece.tag === "PlayerPiece") {
-    classes.push("piece-player")
+  if (piece.player !== null) {
+    // Player piece - use color from global playerColors variable
+    const color = window.playerColors?.[piece.player] || "red"
+    classes.push("piece-player", `piece-color-${color}`)
   } else {
-    classes.push("piece-structure", `piece-structure-${piece.structureType}`)
+    // Neutral structure
+    classes.push("piece-neutral")
   }
 
   return classes
@@ -53,15 +63,12 @@ export class PieceComponent implements Component<Piece> {
 
     // Update tooltip text
     let tooltipText = ""
-    if (piece.tag === "PlayerPiece") {
-      const pieceType = typeof piece.pieceType === "string"
-        ? piece.pieceType
-        : piece.pieceType.tag
-      tooltipText = `${piece.player}'s ${pieceType}`
-    } else if (piece.tag === "Structure") {
-      tooltipText = piece.structureType
+    if (piece.player !== null) {
+      // Player piece
+      tooltipText = `${piece.player}'s ${piece.kind}`
     } else {
-      tooltipText = "Unknown piece"
+      // Structure (neutral)
+      tooltipText = `neutral ${piece.kind}`
     }
 
     this.tooltip.textContent = tooltipText

@@ -53,31 +53,63 @@
 /* Piece styling */
 .piece {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border: 2px solid white;
+  width: 24px;
+  height: 24px;
   z-index: 10;
   transform: translate(-50%, -50%);
 }
 
-.piece-player {
+/* SVG masks for pieces (allows coloring with background-color) */
+.piece-god {
+  mask: url('images/god.svg') no-repeat center / contain;
+  -webkit-mask: url('images/god.svg') no-repeat center / contain;
+}
+
+.piece-soldier {
+  mask: url('images/soldier.svg') no-repeat center / contain;
+  -webkit-mask: url('images/soldier.svg') no-repeat center / contain;
+}
+
+.piece-temple {
+  mask: url('images/temple.svg') no-repeat center / contain;
+  -webkit-mask: url('images/temple.svg') no-repeat center / contain;
+}
+
+.piece-obelisk {
+  mask: url('images/obelisk.svg') no-repeat center / contain;
+  -webkit-mask: url('images/obelisk.svg') no-repeat center / contain;
+}
+
+.piece-pyramid {
+  mask: url('images/pyramid.svg') no-repeat center / contain;
+  -webkit-mask: url('images/pyramid.svg') no-repeat center / contain;
+}
+
+/* Guardian has no SVG, use a circle */
+.piece-guardian {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background-color: #FF6B6B;  /* Red for player pieces */
 }
 
-.piece-structure {
-  border-radius: 2px;
+/* Player colors - simple background colors */
+.piece-neutral {
+  background-color: #95A5A6;  /* Gray */
 }
 
-.piece-structure-temple {
-  background-color: #9B59B6;  /* Purple */
+.piece-color-red {
+  background-color: #E74C3C;  /* Red */
 }
 
-.piece-structure-obelisk {
-  background-color: #E67E22;  /* Orange */
+.piece-color-blue {
+  background-color: #3498DB;  /* Blue */
 }
 
-.piece-structure-pyramid {
+.piece-color-green {
+  background-color: #2ECC71;  /* Green */
+}
+
+.piece-color-yellow {
   background-color: #F1C40F;  /* Yellow */
 }
 
