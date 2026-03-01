@@ -23,7 +23,7 @@ main :: IO ()
 main = startApp App
   { appId = KOI
   , appOptions = [boardFileOption]
-  , appColors = [ "red", "green", "blue", "yellow" ]
+  , appColors = [ "yellow", "purple", "orange", "blue", "green" ]
   , appJS = []
   , appInitialState = \_rng opts ps -> do
       -- Create player ID mapping: player 1, 2, 3, ... in order

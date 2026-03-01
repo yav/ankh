@@ -8,7 +8,6 @@ import { PieceComponent } from "./pieceComponent.ts"
  */
 export class HexComponent implements Component<Hex> {
   private shape: HTMLElement
-  private label: HTMLElement
   private pieces: List<Piece>
   private centerX: number
   private centerY: number
@@ -29,13 +28,6 @@ export class HexComponent implements Component<Hex> {
     this.shape.style.left = `${currentLeft + offsetX}px`
     this.shape.style.top = `${currentTop + offsetY}px`
 
-    // Create coordinate label
-    this.label = document.createElement("div")
-    this.label.className = "coordinate-label"
-    this.label.style.left = this.shape.style.left
-    this.label.style.top = this.shape.style.top
-    this.label.textContent = `${x},${y}`
-
     // Get center position for pieces
     const [cx, cy] = grid.faceLoc(loc)
     this.centerX = cx + offsetX
@@ -48,7 +40,6 @@ export class HexComponent implements Component<Hex> {
     })
 
     container.appendChild(this.shape)
-    container.appendChild(this.label)
     this.currentTerrain = undefined
   }
 
@@ -80,6 +71,5 @@ export class HexComponent implements Component<Hex> {
   destroy(): void {
     this.pieces.destroy()
     this.shape.remove()
-    this.label.remove()
   }
 }

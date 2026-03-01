@@ -68,7 +68,7 @@ export class PieceComponent implements Component<Piece> {
       tooltipText = `${piece.player}'s ${piece.kind}`
     } else {
       // Structure (neutral)
-      tooltipText = `neutral ${piece.kind}`
+      tooltipText = `Neutral ${piece.kind}`
     }
 
     this.tooltip.textContent = tooltipText

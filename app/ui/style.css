@@ -13,20 +13,123 @@
 
 /* Terrain types */
 .terrain-desert {
-  background-color: #F4E4C1;  /* Sandy beige */
+  background:
+    /* Sandy grain texture */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 115, 85, 0.03) 2px,
+      rgba(139, 115, 85, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(160, 130, 95, 0.03) 2px,
+      rgba(160, 130, 95, 0.03) 4px
+    ),
+    /* Sand dunes effect */
+    radial-gradient(
+      ellipse at 30% 40%,
+      #F9E9D2 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      #F5E5C8 0%,
+      transparent 50%
+    ),
+    /* Base sandy color */
+    linear-gradient(
+      135deg,
+      #F4E4C1 0%,
+      #E8D7B0 50%,
+      #F0DFB8 100%
+    );
 }
 
 .terrain-grass {
-  background-color: #90C695;  /* Grass green */
+  background:
+    /* Grass grain texture */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(60, 100, 70, 0.03) 2px,
+      rgba(60, 100, 70, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(70, 110, 75, 0.03) 2px,
+      rgba(70, 110, 75, 0.03) 4px
+    ),
+    /* Grass variation effect */
+    radial-gradient(
+      ellipse at 30% 40%,
+      #9BD1A0 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      #85BD8B 0%,
+      transparent 50%
+    ),
+    /* Base grass color */
+    linear-gradient(
+      135deg,
+      #90C695 0%,
+      #7DB882 50%,
+      #8BC690 100%
+    );
 }
 
 .terrain-water {
-  background-color: #6BA3D9;  /* Water blue */
+  background:
+    /* Water grain texture */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(50, 100, 150, 0.03) 2px,
+      rgba(50, 100, 150, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(70, 130, 180, 0.03) 2px,
+      rgba(70, 130, 180, 0.03) 4px
+    ),
+    /* Water depth effect */
+    radial-gradient(
+      ellipse at 30% 40%,
+      #7DB8E6 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      #5A9FD4 0%,
+      transparent 50%
+    ),
+    /* Base water color */
+    linear-gradient(
+      135deg,
+      #6BA3D9 0%,
+      #5B93C9 50%,
+      #7AADDF 100%
+    );
 }
 
 /* Hex styling */
 .hex-shape {
-  border: 1px solid #34495E;
+  border: none;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 0;
 }
 
@@ -43,7 +146,40 @@
 
 /* Edge types */
 .edge-water {
-  background-color: #4A90E2;  /* Blue for water edges */
+  background:
+    /* Water grain texture */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(30, 80, 130, 0.03) 2px,
+      rgba(30, 80, 130, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(50, 100, 150, 0.03) 2px,
+      rgba(50, 100, 150, 0.03) 4px
+    ),
+    /* Water depth effect */
+    radial-gradient(
+      ellipse at 30% 40%,
+      #5FA8F0 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      #3D7FC9 0%,
+      transparent 50%
+    ),
+    /* Base water edge color */
+    linear-gradient(
+      135deg,
+      #4A90E2 0%,
+      #3B7BC9 50%,
+      #5597E8 100%
+    );
 }
 
 .edge-camels {
@@ -53,64 +189,117 @@
 /* Piece styling */
 .piece {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   z-index: 10;
   transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(240, 240, 240, 0.8) 50%,
+    rgba(220, 220, 220, 0.75) 100%
+  );
+  border: 2px solid rgba(44, 62, 80, 0.6);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* SVG masks for pieces (allows coloring with background-color) */
-.piece-god {
+/* Icon layer using ::before pseudo-element */
+.piece::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+
+/* SVG masks for pieces (applied to ::before) */
+.piece-god::before {
   mask: url('images/god.svg') no-repeat center / contain;
   -webkit-mask: url('images/god.svg') no-repeat center / contain;
 }
 
-.piece-soldier {
+.piece-soldier::before {
   mask: url('images/soldier.svg') no-repeat center / contain;
   -webkit-mask: url('images/soldier.svg') no-repeat center / contain;
 }
 
-.piece-temple {
+.piece-temple::before {
   mask: url('images/temple.svg') no-repeat center / contain;
   -webkit-mask: url('images/temple.svg') no-repeat center / contain;
 }
 
-.piece-obelisk {
+.piece-obelisk::before {
   mask: url('images/obelisk.svg') no-repeat center / contain;
   -webkit-mask: url('images/obelisk.svg') no-repeat center / contain;
 }
 
-.piece-pyramid {
+.piece-pyramid::before {
   mask: url('images/pyramid.svg') no-repeat center / contain;
   -webkit-mask: url('images/pyramid.svg') no-repeat center / contain;
 }
 
-/* Guardian has no SVG, use a circle */
+/* Guardian has no SVG, use a smaller circle */
 .piece-guardian {
-  width: 12px;
-  height: 12px;
+  width: 20px;
+  height: 20px;
+}
+
+.piece-guardian::before {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 
-/* Player colors - simple background colors */
+/* Player colors - applied to border and ::before element */
 .piece-neutral {
+  border-color: #7F8C8D;
+}
+
+.piece-neutral::before {
   background-color: #95A5A6;  /* Gray */
 }
 
-.piece-color-red {
-  background-color: #E74C3C;  /* Red */
+.piece-color-yellow {
+  border-color: #D4A017;
+}
+
+.piece-color-yellow::before {
+  background-color: #F1C40F;  /* Yellow */
+}
+
+.piece-color-purple {
+  border-color: #7D3C98;
+}
+
+.piece-color-purple::before {
+  background-color: #9B59B6;  /* Purple */
+}
+
+.piece-color-orange {
+  border-color: #D35400;
+}
+
+.piece-color-orange::before {
+  background-color: #E67E22;  /* Orange */
 }
 
 .piece-color-blue {
+  border-color: #2C7BB6;
+}
+
+.piece-color-blue::before {
   background-color: #3498DB;  /* Blue */
 }
 
 .piece-color-green {
-  background-color: #2ECC71;  /* Green */
+  border-color: #27AE60;
 }
 
-.piece-color-yellow {
-  background-color: #F1C40F;  /* Yellow */
+.piece-color-green::before {
+  background-color: #2ECC71;  /* Green */
 }
 
 /* Tooltips */
