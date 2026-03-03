@@ -1,3 +1,42 @@
+/* Reset and body styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Main content container */
+#content {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Left pane - board */
+.left-pane {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background-color: #2C3E50;
+}
+
+/* Right pane - player info */
+.right-pane {
+  width: 300px;
+  overflow: auto;
+  padding: 16px;
+  border-left: 2px solid #34495E;
+  background-color: #ECF0F1;
+}
+
+/* Questions area at bottom of right pane */
+.questions-area {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #BDC3C7;
+}
+
 .btn {
   border: 1px solid black;
   margin: 5px;

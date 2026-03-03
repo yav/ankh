@@ -12,6 +12,7 @@ type GUI = {
   boardContainer: HTMLElement,
   playersContainer: HTMLElement,
   questionContainer: HTMLElement,
+  buttonsContainer: HTMLElement,
   questionsContainer: HTMLElement[],
   boardComponent: BoardComponent | null,
   playersComponent: List<PlayerData> | null
@@ -39,30 +40,35 @@ function main () {
 // Redraw the whole state
 function uiRedraw (state: GameState) {
 
+  // Get containers from existing HTML
+  const boardContainer = document.getElementById("board-container")
+  const playersContainer = document.getElementById("players-container")
+  const questionContainer = document.getElementById("question-container")
+  const buttonsContainer = document.getElementById("buttons-container")
+
+  if (!boardContainer) throw new Error("Failed to find board-container")
+  if (!playersContainer) throw new Error("Failed to find players-container")
+  if (!questionContainer) throw new Error("Failed to find question-container")
+  if (!buttonsContainer) throw new Error("Failed to find buttons-container")
+
   gui = {
-    boardContainer: uiFromTemplate("template-board"),
-    playersContainer: uiFromTemplate("template-players"),
-    questionContainer: uiFromTemplate("template-question"),
+    boardContainer,
+    playersContainer,
+    questionContainer,
+    buttonsContainer,
     questionsContainer: [],
     boardComponent: null,
     playersComponent: null
   }
 
-  const body = document.getElementById("content")
-  if (body == null) { throw new Error("Failed to find the body") }
-
-  body.innerHTML = ""
-  body.appendChild(gui.boardContainer)
-  body.appendChild(gui.playersContainer)
-  body.appendChild(gui.questionContainer)
+  // Clear containers
+  boardContainer.innerHTML = ""
+  playersContainer.innerHTML = ""
+  questionContainer.innerHTML = ""
+  buttonsContainer.innerHTML = ""
 
   // Create components
   gui.boardComponent = new BoardComponent(gui.boardContainer)
-
-  // Add players header
-  const playersHeader = document.createElement("h3")
-  playersHeader.textContent = "Players:"
-  gui.playersContainer.appendChild(playersHeader)
 
   // Create players list component
   gui.playersComponent = new List<PlayerData>(() => {
@@ -77,6 +83,7 @@ function uiRedraw (state: GameState) {
 // Set the explanation for what we are asking.
 function uiSetQuestion (q: string) {
   gui.questionContainer.textContent = q
+  gui.buttonsContainer.innerHTML = ""
   gui.questionsContainer = []
 }
 
@@ -93,9 +100,8 @@ function uiQuestion (q: Question<Q>) {
       conn.sendJSON(q)
     })
 
-    const body = document.getElementById("content")
-    if (body === null) { throw new Error("Failed to find `content`") }
-    body.appendChild(dom)
+    // Add button to buttons container
+    gui.buttonsContainer.appendChild(dom)
     gui.questionsContainer.push(dom)
   }
 

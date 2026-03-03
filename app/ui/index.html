@@ -11,11 +11,26 @@
 </script>
 </head>
 <body id="body">
-<div id="content"></div>
+<div id="content">
+  <!-- Left pane: Board -->
+  <div class="left-pane">
+    <div id="board-container"></div>
+  </div>
+
+  <!-- Right pane: Players and Questions -->
+  <div class="right-pane">
+    <h3 style="margin-top: 0">Players</h3>
+    <div id="players-container"></div>
+
+    <div class="questions-area">
+      <div id="question-container"></div>
+      <div id="buttons-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden templates -->
 <div style="display: none">
-  <div id="template-board"></div>
-  <div id="template-players"></div>
-  <div id="template-question"></div>
   <div id="template-btn" class="btn"></div>
 </div>
 </body>
