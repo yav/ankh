@@ -11,7 +11,13 @@ export class EdgeComponent implements Component<EdgeType> {
   private edgeShape: HTMLElement
   private currentType: EdgeType | undefined
 
-  constructor(container: HTMLElement, grid: Grid, key: string, offsetX: number, offsetY: number) {
+  constructor(grid: Grid, key: string, offsetX: number, offsetY: number) {
+    // Get container from DOM
+    const container = document.getElementById("board-container")
+    if (!container) {
+      throw new Error("Board container not found in DOM")
+    }
+
     // Parse key as "x,y,dir"
     const [x, y, edgeNum] = key.split(",").map(Number)
     const loc = new FLoc(x, y)

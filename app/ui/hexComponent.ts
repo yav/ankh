@@ -13,7 +13,13 @@ export class HexComponent implements Component<Hex> {
   private centerY: number
   private currentTerrain: string | undefined
 
-  constructor(container: HTMLElement, grid: Grid, key: string, offsetX: number, offsetY: number) {
+  constructor(grid: Grid, key: string, offsetX: number, offsetY: number) {
+    // Get container from DOM
+    const container = document.getElementById("board-container")
+    if (!container) {
+      throw new Error("Board container not found in DOM")
+    }
+
     // Parse key as "x,y"
     const [x, y] = key.split(",").map(Number)
     const loc = new FLoc(x, y)
@@ -35,7 +41,7 @@ export class HexComponent implements Component<Hex> {
 
     // Create list component for pieces
     this.pieces = new List((index) => {
-      const piece = new PieceComponent(container, this.centerX, this.centerY, index)
+      const piece = new PieceComponent(this.centerX, this.centerY, index)
       return piece
     })
 

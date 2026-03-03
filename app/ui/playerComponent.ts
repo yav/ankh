@@ -1,22 +1,19 @@
 import { Component, Text } from "./common-js/combinators.ts"
 import type { PlayerId, PlayerState } from "./protocol.ts"
 
-// Player data type for components
-export type PlayerData = {
-  id: PlayerId,
-  state: PlayerState
-}
-
 /**
  * Component for rendering a single player
  */
-export class PlayerComponent implements Component<PlayerData> {
+export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
   private playerDiv: HTMLElement
   private idText: Text
   private followersText: Text
   private soldiersText: Text
 
-  constructor(container: HTMLElement) {
+  constructor() {
+    // Get container from DOM
+    const container = document.getElementById("players-container")!
+
     this.playerDiv = document.createElement("div")
     this.playerDiv.style.marginBottom = "8px"
 
@@ -52,10 +49,10 @@ export class PlayerComponent implements Component<PlayerData> {
     container.appendChild(this.playerDiv)
   }
 
-  set(player: PlayerData): boolean {
-    const idChanged = this.idText.set(`${player.id}:`)
-    const followersChanged = this.followersText.set(`${player.state.followers}`)
-    const soldiersChanged = this.soldiersText.set(`${player.state.soldiers}`)
+  set([id, state]: [PlayerId, PlayerState]): boolean {
+    const idChanged = this.idText.set(`${id}:`)
+    const followersChanged = this.followersText.set(`${state.followers}`)
+    const soldiersChanged = this.soldiersText.set(`${state.soldiers}`)
     return idChanged || followersChanged || soldiersChanged
   }
 

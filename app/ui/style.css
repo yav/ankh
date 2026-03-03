@@ -17,7 +17,7 @@ html, body {
 .left-pane {
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: 0;
   background-color: #2C3E50;
 }
 
@@ -47,7 +47,9 @@ html, body {
 
 /* Board styling */
 .board-container {
+  position: relative;
   background-color: #2C3E50;
+  transform-origin: top left;
 }
 
 /* Terrain types */

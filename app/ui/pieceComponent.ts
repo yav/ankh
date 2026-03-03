@@ -31,7 +31,13 @@ export class PieceComponent implements Component<Piece> {
   private pieceElement: HTMLElement
   private tooltip: HTMLElement
 
-  constructor(container: HTMLElement, x: number, y: number, index: number) {
+  constructor(x: number, y: number, index: number) {
+    // Get container from DOM
+    const container = document.getElementById("board-container")
+    if (!container) {
+      throw new Error("Board container not found in DOM")
+    }
+
     this.pieceElement = document.createElement("div")
     this.tooltip = document.createElement("div")
     this.tooltip.className = "piece-tooltip"
