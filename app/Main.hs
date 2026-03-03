@@ -4,7 +4,7 @@ import App.KOI
 import App.State
 import App.PlayerState
 import App.Input
-import App.Board (parseBoard)
+import App.Board (parseBoard, countSoldiersOnBoard)
 import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS (parseEither)
 import qualified Data.ByteString.Lazy as BSL
@@ -38,9 +38,18 @@ main = startApp App
           Left err -> error ("Failed to parse board: " ++ err)
           Right b -> pure b
 
+      -- Count soldiers on board for each player
+      let soldiersOnBoard = countSoldiersOnBoard board
+
       pure State
         { stateBoard = board
-        , statePlayers = Map.fromList [ (p, PlayerState) | p <- ps ]
+        , statePlayers = Map.fromList
+            [ (p, PlayerState
+                { playerFollowers = 2
+                , playerSoldiers = 6 - Map.findWithDefault 0 p soldiersOnBoard
+                })
+            | p <- ps
+            ]
         }
   , appStart = gameLoop
   }

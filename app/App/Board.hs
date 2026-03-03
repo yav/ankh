@@ -1,6 +1,6 @@
 module App.Board where
 
-import App.Piece (Piece, parsePiece)
+import App.Piece (Piece(..), PlayerPieceType(..), parsePiece)
 import Coord (FLoc(..), ELoc(..), findRegions)
 import Coord qualified
 import Data.Aeson qualified as JS
@@ -193,3 +193,12 @@ computeRegions hexes edges =
           , not (Set.member neighbor nonWaterPositions)
           ]
         specialEdges = Map.keysSet edges
+
+-- | Count the number of soldiers on the board for each player
+countSoldiersOnBoard :: Board -> Map PlayerId Int
+countSoldiersOnBoard board =
+  Map.fromListWith (+)
+    [ (playerId, 1)
+    | hex <- Map.elems (boardHexes board)
+    , PlayerPiece playerId Soldier <- hexPieces hex
+    ]

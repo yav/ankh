@@ -58,8 +58,11 @@ export type Board = {
   edges: Edge[]
 }
 
-// Player state (currently empty)
-export type PlayerState = {}
+// Player state
+export type PlayerState = {
+  followers: number,
+  soldiers: number
+}
 
 // State view of the game
 export type StateView = {
