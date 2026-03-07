@@ -28,6 +28,7 @@ executable ankh
                       App.PlayerState,
                       App.Action,
                       App.Event,
+                      App.Conflict,
                       Coord
     build-depends:    base ^>=4.19.2.0,
                       aeson,

@@ -61,7 +61,9 @@ export type Board = {
 // Player state
 export type PlayerState = {
   followers: number,
-  soldiers: number
+  soldiers: number,
+  points: number,
+  actions: number
 }
 
 // State view of the game

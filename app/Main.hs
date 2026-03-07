@@ -47,6 +47,8 @@ main = startApp App
             [ (p, PlayerState
                 { playerFollowers = 2
                 , playerSoldiers = 6 - Map.findWithDefault 0 p soldiersOnBoard
+                , playerPoints = 0
+                , playerActions = 2
                 })
             | p <- ps
             ]
