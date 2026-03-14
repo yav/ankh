@@ -1,5 +1,7 @@
-import type { Piece } from "./protocol.ts"
+import type { Piece, Input } from "./protocol.ts"
+import type { Question } from "./common-js/connect.ts"
 import { Component } from "./common-js/combinators.ts"
+import { registerQuestionCleanup, respondToQuestion } from "./questionActions"
 
 // Access global playerColors variable from dynamic.js
 declare global {
@@ -30,6 +32,8 @@ function getPieceClasses(piece: Piece): string[] {
 export class PieceComponent implements Component<Piece> {
   private pieceElement: HTMLElement
   private tooltip: HTMLElement
+  private currentPiece: Piece | null
+  private questionClickHandler: (() => void) | null
 
   constructor(x: number, y: number, index: number) {
     // Get container from DOM
@@ -58,14 +62,47 @@ export class PieceComponent implements Component<Piece> {
 
     container.appendChild(this.pieceElement)
     document.body.appendChild(this.tooltip)
+    this.currentPiece = null
+    this.questionClickHandler = null
 
     // Set initial position
     this.updatePosition(x, y, index, 1)
   }
 
+  private updateClasses(): void {
+    if (this.currentPiece === null) {
+      this.pieceElement.className = "piece"
+      return
+    }
+
+    const classes = getPieceClasses(this.currentPiece)
+    if (this.questionClickHandler !== null) {
+      classes.push("piece-question-choice")
+    }
+    this.pieceElement.className = classes.join(" ")
+  }
+
+  private clearQuestionState(): void {
+    if (this.questionClickHandler !== null) {
+      this.pieceElement.removeEventListener("click", this.questionClickHandler)
+      this.questionClickHandler = null
+    }
+    this.pieceElement.removeAttribute("title")
+    this.updateClasses()
+  }
+
+  handleChooseHexQuestion(question: Question<Input>): void {
+    this.clearQuestionState()
+    this.pieceElement.title = question.chHelp
+    this.questionClickHandler = () => respondToQuestion(question)
+    this.pieceElement.addEventListener("click", this.questionClickHandler)
+    this.updateClasses()
+    registerQuestionCleanup(() => this.clearQuestionState())
+  }
+
   set(piece: Piece): boolean {
-    // Update classes
-    this.pieceElement.className = getPieceClasses(piece).join(" ")
+    this.currentPiece = piece
+    this.updateClasses()
 
     // Update tooltip text
     let tooltipText = ""
@@ -105,6 +142,7 @@ export class PieceComponent implements Component<Piece> {
   }
 
   destroy(): void {
+    this.clearQuestionState()
     this.pieceElement.remove()
     this.tooltip.remove()
   }

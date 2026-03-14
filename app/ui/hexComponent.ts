@@ -1,7 +1,9 @@
 import { Grid, FLoc, newHexShape } from "../../hex-grid/src/index.ts"
-import type { Hex, Piece } from "./protocol.ts"
+import type { Hex, Piece, Input } from "./protocol.ts"
+import type { Question } from "./common-js/connect.ts"
 import { Component, List } from "./common-js/combinators.ts"
 import { PieceComponent } from "./pieceComponent.ts"
+import { registerQuestionCleanup, respondToQuestion } from "./questionActions"
 
 /**
  * Component for rendering a hex with its pieces
@@ -12,6 +14,8 @@ export class HexComponent implements Component<Hex> {
   private centerX: number
   private centerY: number
   private currentTerrain: string | undefined
+  private currentQuestion: Question<Input> | null
+  private questionClickHandler: (() => void) | null
 
   constructor(grid: Grid, key: string, offsetX: number, offsetY: number) {
     // Get container from DOM
@@ -47,6 +51,46 @@ export class HexComponent implements Component<Hex> {
 
     container.appendChild(this.shape)
     this.currentTerrain = undefined
+    this.currentQuestion = null
+    this.questionClickHandler = null
+  }
+
+  private updateClasses(): void {
+    const classes = ["hex-shape"]
+    if (this.currentTerrain !== undefined) {
+      classes.push(`terrain-${this.currentTerrain}`)
+    }
+    if (this.currentQuestion !== null) {
+      classes.push("hex-question-choice")
+    }
+    this.shape.className = classes.join(" ")
+  }
+
+  private clearQuestionState(): void {
+    if (this.questionClickHandler !== null) {
+      this.shape.removeEventListener("click", this.questionClickHandler)
+      this.questionClickHandler = null
+    }
+    this.currentQuestion = null
+    this.shape.removeAttribute("title")
+    this.updateClasses()
+  }
+
+  handleChooseHexQuestion(question: Question<Input>): void {
+    const pieceElements = this.pieces.getElements() as PieceComponent[]
+    if (pieceElements.length > 0) {
+      this.clearQuestionState()
+      pieceElements.forEach((piece) => piece.handleChooseHexQuestion(question))
+      return
+    }
+
+    this.clearQuestionState()
+    this.currentQuestion = question
+    this.shape.title = question.chHelp
+    this.questionClickHandler = () => respondToQuestion(question)
+    this.shape.addEventListener("click", this.questionClickHandler)
+    this.updateClasses()
+    registerQuestionCleanup(() => this.clearQuestionState())
   }
 
   set(hex: Hex): boolean {
@@ -54,8 +98,8 @@ export class HexComponent implements Component<Hex> {
 
     // Update terrain class if changed
     if (this.currentTerrain !== hex.terrain) {
-      this.shape.className = `hex-shape terrain-${hex.terrain}`
       this.currentTerrain = hex.terrain
+      this.updateClasses()
       changed = true
     }
 
@@ -75,6 +119,7 @@ export class HexComponent implements Component<Hex> {
   }
 
   destroy(): void {
+    this.clearQuestionState()
     this.pieces.destroy()
     this.shape.remove()
   }

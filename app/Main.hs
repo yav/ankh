@@ -1,9 +1,9 @@
 module Main where
 
+import App.Action (doMove)
 import App.KOI
 import App.State
 import App.PlayerState
-import App.Input
 import App.Board (parseBoard, countSoldiersOnBoard)
 import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS (parseEither)
@@ -59,9 +59,5 @@ main = startApp App
 gameLoop :: Interact ()
 gameLoop =
   do s <- getState
-     -- Ask each player a trivial question to yield control
-     mapM_ askPlayer (Map.keys (statePlayers s))
-     update s
+     mapM_ doMove (Map.keys (statePlayers s))
      gameLoop
-  where
-    askPlayer p = choose p "What would you like to do?" [(Placeholder, "Continue")]

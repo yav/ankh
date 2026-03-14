@@ -4,6 +4,12 @@
 // Player identification
 export type PlayerId = string
 
+// App input values sent inside KOI ChoiceHelp.chChoice.
+// This mirrors App.Input and its default Aeson encoding.
+export type Input =
+  | { tag: "ChooseHex", contents: HexPos }
+  | { tag: "TextQuestion", contents: string }
+
 // Hexagonal coordinate system (FLoc in Haskell)
 // Serialized as [x, y] array
 export type HexPos = [number, number]

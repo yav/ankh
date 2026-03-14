@@ -2,13 +2,15 @@ import {
   Grid,
   FLoc
 } from "../../hex-grid/src/index.ts"
+import type { Question } from "./common-js/connect.ts"
 import type {
   Terrain,
   HexPos,
   EdgePos,
   Board,
   Hex,
-  EdgeType
+  EdgeType,
+  Input
 } from "./protocol.ts"
 import {
   Component,
@@ -188,6 +190,14 @@ export class BoardComponent implements Component<Board> {
     const edgesChanged = this.edges.set(edgeMap)
 
     return justInitialized || hexesChanged || edgesChanged
+  }
+
+  handleChooseHexQuestion(location: HexPos, question: Question<Input>): void {
+    const [x, y] = location
+    const hex = this.hexes.getElement(`${x},${y}`)
+    if (hex instanceof HexComponent) {
+      hex.handleChooseHexQuestion(question)
+    }
   }
 
   destroy(): void {

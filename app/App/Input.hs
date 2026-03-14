@@ -6,7 +6,6 @@ import Data.Text (Text)
 import Coord (FLoc)
 
 data Input
-  = Placeholder
-  | ChooseHex FLoc
+  = ChooseHex FLoc
   | TextQuestion Text
   deriving (Read,Show,Eq,Ord,Generic,JS.ToJSON,JS.FromJSON)

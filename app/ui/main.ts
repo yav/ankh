@@ -1,27 +1,27 @@
-import { srvConnect, Connection, Question } from "./common-js/connect.ts"
+import { srvConnect } from "./common-js/connect.ts"
+import type { Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
 import { BoardComponent } from "./boardComponent.ts"
-import type { StateView, PlayerId, PlayerState } from "./protocol.ts"
+import type { StateView, PlayerId, PlayerState, Input } from "./protocol.ts"
 import { List } from "./common-js/combinators.ts"
 import { PlayerComponent } from "./playerComponent.ts"
-
-// Game input types (currently placeholder)
-type Q = "Placeholder"
+import { configureQuestionActions, registerQuestionCleanup, respondToQuestion } from "./questionActions"
 
 type GUI = {
   questionContainer: HTMLElement,
   buttonsContainer: HTMLElement,
   questionsContainer: HTMLElement[],
+  questionCleanup: Array<() => void>,
   boardComponent: BoardComponent,
   playersComponent: List<[PlayerId, PlayerState]>
 }
 
 type GameState = {
   game: StateView,
-  questions: [string, Question<Q>[]]
+  questions: [string, Question<Input>[]]
 }
 
-let conn: Connection<Q>;
+let conn: Connection<Input>;
 let gui: GUI;
 
 export default
@@ -53,9 +53,12 @@ function uiRedraw (state: GameState) {
     questionContainer,
     buttonsContainer,
     questionsContainer: [],
+    questionCleanup: [],
     boardComponent: new BoardComponent(),
     playersComponent: new List<[PlayerId, PlayerState]>(() => new PlayerComponent())
   }
+
+  configureQuestionActions(gui, conn)
 
   uiUpdate(state.game)
   conn.uiQuestions(state.questions)
@@ -70,25 +73,31 @@ function uiSetQuestion (q: string) {
 }
 
 // Various things that can be used to answer the question.
-function uiQuestion (q: Question<Q>) {
-
-  function btn(lab: string) {
+function uiQuestion (q: Question<Input>) {
+  function choice(lab: string, onClick?: () => void) {
     const dom = uiFromTemplate("template-btn")
     dom.textContent = lab
-    dom.addEventListener("click", () => {
-      const n = gui.questionsContainer.length
-      for (let i = 0; i < n; ++i) gui.questionsContainer[i].remove()
-      gui.questionContainer.textContent = ""
-      conn.sendJSON(q)
-    })
+    dom.title = q.chHelp
+
+    if (onClick) {
+      dom.addEventListener("click", onClick)
+    }
 
     // Add button to buttons container
     gui.buttonsContainer.appendChild(dom)
     gui.questionsContainer.push(dom)
+    registerQuestionCleanup(() => dom.remove())
   }
 
-  // Display the help text for the choice
-  btn(q.chHelp)
+  switch (q.chChoice.tag) {
+    case "TextQuestion":
+      choice(q.chChoice.contents, () => respondToQuestion(q))
+      break
+
+    case "ChooseHex":
+      gui.boardComponent.handleChooseHexQuestion(q.chChoice.contents, q)
+      break
+  }
 }
 
 
