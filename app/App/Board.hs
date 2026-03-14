@@ -1,19 +1,23 @@
 module App.Board where
 
-import App.Piece (Piece(..), PlayerPieceType(..), parsePiece)
-import Coord (FLoc(..), ELoc(..), findRegions)
-import Coord qualified
-import Data.Aeson qualified as JS
-import Data.Aeson ((.:))
-import Data.Aeson.Types (Parser)
+import Data.String (fromString)
+import Data.Text (Text)
+import Data.Vector qualified as V
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.String (fromString)
-import Data.Text (Text)
-import Data.Vector qualified as V
+import Data.Aeson qualified as JS
+import Data.Aeson ((.:))
+import Data.Aeson.Types (Parser)
+
+
 import KOI.Basics (PlayerId)
+import Coord (FLoc(..), ELoc(..), findRegions)
+import Coord qualified
+import App.Piece (Piece(..), PlayerPieceType(..), parsePiece)
+
+
 
 -- | The game board, represented as a map from positions to hexagons,
 -- a map from region IDs to the set of positions in that region,
@@ -171,28 +175,25 @@ parsePlayerIdFromInt playerMap val =
 -- | Compute regions from the board hexes and edges
 -- Finds connected regions of non-water terrain, separated by water, missing hexes, and special edges
 computeRegions :: Map FLoc Hex -> Map ELoc EdgeType -> Map RegionId (Set FLoc)
-computeRegions hexes edges =
-  let allPositions = Map.keysSet hexes
-      nonWaterPositions = Set.filter (\pos -> case Map.lookup pos hexes of
-                                                Just (Hex terrain _) -> terrain /= Water
-                                                Nothing -> False) allPositions
-      barriers = findBarriers nonWaterPositions
-      flocRegions = findRegions nonWaterPositions barriers
-  in flocRegions
+computeRegions hexes edges = findRegions nonWaterPositions barriers
   where
-    -- Find barrier edges (edges bordering water or missing hexes, plus special edges from the map)
-    findBarriers nonWaterPositions =
-      Set.union naturalBarriers specialEdges
-      where
-        naturalBarriers = Set.fromList
-          [ edge
-          | pos <- Set.toList nonWaterPositions
-          , dir <- Coord.allDirections
-          , let edge = Coord.flocEdge pos dir
-          , let neighbor = Coord.flocAdvance pos dir 1
-          , not (Set.member neighbor nonWaterPositions)
-          ]
-        specialEdges = Map.keysSet edges
+    allPositions = Map.keysSet hexes
+    nonWaterPositions = Set.filter nonWater allPositions
+    nonWater pos =
+      case Map.lookup pos hexes of
+        Just (Hex terrain _) -> terrain /= Water
+        Nothing -> False
+
+    barriers = Set.union naturalBarriers (Map.keysSet edges)
+  
+    naturalBarriers = Set.fromList
+      [ edge
+      | pos <- Set.toList nonWaterPositions
+      , dir <- Coord.allDirections
+      , let edge = Coord.flocEdge pos dir
+      , let neighbor = Coord.flocAdvance pos dir 1
+      , not (Set.member neighbor nonWaterPositions)
+      ]
 
 -- | Count the number of soldiers on the board for each player
 countSoldiersOnBoard :: Board -> Map PlayerId Int
