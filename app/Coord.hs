@@ -349,3 +349,16 @@ findRegions faces barriers = go 0 faces Map.empty
         , let neighbor = flocAdvance face dir 1
         , Set.member neighbor available
         ]
+
+-- | Find locations up to the given distance away from the given starting point.
+locationsUpTo :: Int -> FLoc -> Set FLoc
+locationsUpTo d l = go Set.empty [(l,0)]
+  where
+  go visited todo =
+    case todo of
+      (x,d') : more
+        | d' > d || x `Set.member` visited-> go visited more
+        | otherwise ->
+            go (Set.insert x visited)
+               ([ (flocAdvance x dir 1, d' + 1) | dir <- allDirections ] ++ more)
+      [] -> visited

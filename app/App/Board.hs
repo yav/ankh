@@ -7,6 +7,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.List (partition)
 import Data.Aeson qualified as JS
 import Data.Aeson ((.:))
 import Data.Aeson.Types (Parser)
@@ -203,3 +204,38 @@ countSoldiersOnBoard board =
     | hex <- Map.elems (boardHexes board)
     , PlayerPiece playerId Soldier <- hexPieces hex
     ]
+
+-- | Find all hexagon locations that contain at least one player piece belonging to the given player.
+playerPieceLocations :: PlayerId -> Board -> [FLoc]
+playerPieceLocations pid board =
+  [ loc
+  | (loc, hex) <- Map.toList (boardHexes board)
+  , any isPlayerPiece (hexPieces hex)
+  ]
+  where
+    isPlayerPiece (PlayerPiece p' _) = pid == p'
+    isPlayerPiece _                  = False
+
+-- | Move all pieces of the given player from one location to another.
+movePiece :: PlayerId -> FLoc -> FLoc -> Board -> Board
+movePiece pid from to board
+  | from == to  = board
+  | otherwise   = board { boardHexes = hexes2 }
+  where
+  (toMove, hexes1)  = Map.alterF extract from (boardHexes board)
+  hexes2            = Map.adjust (addPieces toMove) to hexes1
+    
+  extract mb =
+    case mb of
+      Nothing -> ([], Nothing)
+      Just h ->
+        let (move, stay) = partition ourPiece (hexPieces h)
+        in (move, Just h { hexPieces = stay })
+
+  ourPiece piece =
+    case piece of
+      PlayerPiece p' _  -> pid == p'
+      _                 -> False
+
+addPieces :: [Piece] -> Hex -> Hex
+addPieces ps h = h { hexPieces = ps ++ hexPieces h }
