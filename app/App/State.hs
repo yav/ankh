@@ -24,6 +24,10 @@ decrementAction act st =
   where
     dec amount = amount { actionAvailable = actionAvailable amount - 1 }
 
+gainFollowers :: PlayerId -> Int -> State -> State
+gainFollowers pid n st =
+  st { statePlayers = Map.adjust (addFollowers n) pid (statePlayers st) }
+
 summonSoldier :: PlayerId -> FLoc -> State -> State
 summonSoldier pid loc st =
   st

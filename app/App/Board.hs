@@ -7,7 +7,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.List (partition)
+import Data.List (foldl', partition)
 import Data.Aeson qualified as JS
 import Data.Aeson ((.:))
 import Data.Aeson.Types (Parser)
@@ -234,6 +234,33 @@ adjacentHexes board from to
     | dir <- Coord.allDirections
     , Coord.flocAdvance from dir 1 == to
     ]
+
+adjacentLocations :: Board -> [FLoc] -> Set FLoc
+adjacentLocations board froms =
+  Set.fromList
+    [ to
+    | from <- froms
+    , dir <- Coord.allDirections
+    , let to = Coord.flocAdvance from dir 1
+    , adjacentHexes board from to
+    ]
+
+computeFollowersGain :: Board -> PlayerId -> Int
+computeFollowersGain board pid =
+  sum
+    [ foldl' countIfMatching 0 (hexPieces hex)
+    | loc <- Set.toList followerLocations
+    , Just hex <- [Map.lookup loc (boardHexes board)]
+    ]
+  where
+  followerLocations = adjacentLocations board (playerPieceLocations pid board)
+  countIfMatching acc piece
+    | countsForPlayer piece = acc + 1
+    | otherwise = acc
+  countsForPlayer piece =
+    case piece of
+      Structure mbOwner _ -> mbOwner == Nothing || mbOwner == Just pid
+      _ -> False
 
 -- | Move all pieces of the given player from one location to another.
 movePiece :: PlayerId -> FLoc -> FLoc -> Board -> Board

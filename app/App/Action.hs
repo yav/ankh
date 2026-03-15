@@ -6,11 +6,10 @@ import Data.Set qualified as Set
 
 import KOI.Basics (PlayerId)
 import Coord (FLoc, locationsUpTo)
-import Coord qualified
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
-import App.State (State(..), decrementAction, summonSoldier)
-import App.Board (Board(..), Hex(..), Terrain(..), adjacentHexes, movePiece, playerPieceLocations)
+import App.State (State(..), decrementAction, gainFollowers, summonSoldier)
+import App.Board (Board(..), Hex(..), Terrain(..), adjacentLocations, computeFollowersGain, movePiece, playerPieceLocations)
 import App.Input (Input(..))
 import App.Piece (pieceOwner)
 import App.PlayerState (PlayerState(..))
@@ -31,7 +30,7 @@ doAction pid =
         do
           choice <-
             choose pid "Choose an action"
-              [ (ChooseAction act, actionLabel act)
+              [ (ChooseAction act, actionHelp st pid act)
               | (act, _) <- availableActions
               ]
           case choice of
@@ -46,8 +45,17 @@ runAction pid act =
   case act of
     MoveFigures -> doMove pid
     SummonFigure -> doSummon pid
-    GainFollowers -> pure ()
+    GainFollowers -> doGainFollowers pid
     GainPower -> pure ()
+
+actionHelp :: State -> PlayerId -> Action -> T.Text
+actionHelp st pid act =
+  case act of
+    GainFollowers ->
+      actionLabel act <> " (+" <> T.pack (show gainedFollowers) <> ")"
+    _ -> actionLabel act
+  where
+    gainedFollowers = computeFollowersGain (stateBoard st) pid
 
 
 doMove :: PlayerId -> Interact ()
@@ -106,6 +114,13 @@ doSummon pid =
                       _ -> pure ()
       _ -> pure ()
 
+doGainFollowers :: PlayerId -> Interact ()
+doGainFollowers pid =
+  do
+    st <- getState
+    let amount = computeFollowersGain (stateBoard st) pid
+    update (gainFollowers pid amount st)
+
 -- | Find valid move targets: up to 3 distance, on board, non-water, and empty.
 validMoveTargets :: Board -> FLoc -> [FLoc]
 validMoveTargets board start =
@@ -133,13 +148,7 @@ validSummonTargets pid board =
       , any (isPlayerPieceOrStructure pid) (hexPieces hex)
       ]
 
-    candidateLocations = Set.fromList
-      [ neighbor
-      | loc <- occupiedLocations
-      , dir <- Coord.allDirections
-      , let neighbor = Coord.flocAdvance loc dir 1
-      , adjacentHexes board loc neighbor
-      ]
+    candidateLocations = adjacentLocations board occupiedLocations
 
     isPlayerPieceOrStructure owner piece = pieceOwner piece == Just owner
 
