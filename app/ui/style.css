@@ -30,6 +30,56 @@ html, body {
   background-color: #ECF0F1;
 }
 
+.actions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.action-card {
+  width: 64px;
+  height: 64px;
+  padding: 10px;
+  border: 1px solid #B8C4CC;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F4F7F8 100%);
+  box-shadow: 0 1px 3px rgba(44, 62, 80, 0.12);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.action-question-choice {
+  cursor: pointer;
+  box-shadow:
+    0 0 0 3px rgba(52, 152, 219, 0.25),
+    0 2px 6px rgba(44, 62, 80, 0.18);
+  border-color: #5DADE2;
+  transform: translateY(-1px);
+}
+
+.action-question-choice:hover {
+  background: linear-gradient(180deg, #FFFFFF 0%, #EAF4FB 100%);
+  border-color: #3498DB;
+}
+
+.action-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2C3E50;
+  margin-bottom: 6px;
+}
+
+.action-card-amount {
+  font-size: 12px;
+  line-height: 1.3;
+  color: #526371;
+}
+
 /* Questions area at bottom of right pane */
 .questions-area {
   margin-top: 20px;

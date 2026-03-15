@@ -26,6 +26,7 @@ executable ankh
                       App.Board,
                       App.Piece,
                       App.PlayerState,
+                      App.ActionType,
                       App.Action,
                       App.Event,
                       App.Conflict,

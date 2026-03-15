@@ -3,6 +3,7 @@ module App.StateView where
 import KOI.Basics
 import Data.Aeson qualified as JS
 import Data.Map qualified as Map
+import App.ActionType ()
 import App.State
 
 newtype StateView = StateView State
@@ -14,4 +15,5 @@ instance JS.ToJSON StateView where
   toJSON (StateView st) = JS.object
     [ "board" JS..= stateBoard st
     , "players" JS..= Map.toList (statePlayers st)
+    , "actions" JS..= Map.toList (stateActions st)
     ]

@@ -1,6 +1,7 @@
 module Main where
 
-import App.Action (doMove)
+import App.Action (doAction)
+import App.ActionType (initActionSelector)
 import App.KOI
 import App.State
 import App.PlayerState
@@ -52,12 +53,14 @@ main = startApp App
                 })
             | p <- ps
             ]
+            , stateActions = initActionSelector (length ps)
         }
   , appStart = gameLoop
   }
 
 gameLoop :: Interact ()
 gameLoop =
-  do s <- getState
-     mapM_ doMove (Map.keys (statePlayers s))
-     gameLoop
+  do
+    s <- getState
+    mapM_ doAction (Map.keys (statePlayers s))
+    gameLoop

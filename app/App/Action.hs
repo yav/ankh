@@ -1,7 +1,5 @@
 module App.Action where
 
-import Data.Aeson(ToJSON,(.=))
-import Data.Aeson qualified as JS
 import Data.Text qualified as T
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
@@ -9,41 +7,47 @@ import Data.Set qualified as Set
 import KOI.Basics (PlayerId)
 import Coord (FLoc, locationsUpTo)
 import Coord qualified
+import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
-import App.State (State(..), summonSoldier)
+import App.State (State(..), decrementAction, summonSoldier)
 import App.Board (Board(..), Hex(..), Terrain(..), adjacentHexes, movePiece, playerPieceLocations)
 import App.Input (Input(..))
 import App.Piece (pieceOwner)
 import App.PlayerState (PlayerState(..))
 
-data Action = MoveFigures | SummonFigure | GainFollowers | GainPower
-    deriving (Eq,Ord,Bounded)
 
-data ActionAmount = ActionAmount {
-    actionMax :: !Int,
-    actionAvailable :: !Int
-}
+doAction :: PlayerId -> Interact ()
+doAction pid =
+  do
+    st <- getState
+    let availableActions =
+          [ (act, amount)
+          | (act, amount) <- Map.toList (stateActions st)
+          , actionAvailable amount > 0
+          ]
+    case availableActions of
+      [] -> pure ()
+      _ ->
+        do
+          choice <-
+            choose pid "Choose an action"
+              [ (ChooseAction act, actionLabel act)
+              | (act, _) <- availableActions
+              ]
+          case choice of
+            ChooseAction act ->
+              do
+                update (decrementAction act st)
+                runAction pid act
+            _ -> pure ()
 
-initActionAmount :: Int -> Action -> ActionAmount
-initActionAmount playerCount act =
-  ActionAmount { actionMax = ma, actionAvailable = ma }
-  where
-  ma  = tot + playerCount - 5
-  tot =
-    case act of
-      GainPower -> 5
-      _         -> 6
-
-instance ToJSON Action where
-  toJSON act =
-    case act of
-      MoveFigures       -> "move"
-      SummonFigure      -> "summon"
-      GainFollowers     -> "follower"
-      GainPower         -> "power"
-
-instance ToJSON ActionAmount where
-  toJSON x = JS.object [ "has" .= actionAvailable x, "max" .= actionMax x ]
+runAction :: PlayerId -> Action -> Interact ()
+runAction pid act =
+  case act of
+    MoveFigures -> doMove pid
+    SummonFigure -> doSummon pid
+    GainFollowers -> pure ()
+    GainPower -> pure ()
 
 
 doMove :: PlayerId -> Interact ()

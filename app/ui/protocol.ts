@@ -8,6 +8,7 @@ export type PlayerId = string
 // This mirrors App.Input and its default Aeson encoding.
 export type Input =
   | { tag: "ChooseHex", contents: HexPos }
+  | { tag: "ChooseAction", contents: Action }
   | { tag: "TextQuestion", contents: string }
 
 // Hexagonal coordinate system (FLoc in Haskell)
@@ -72,8 +73,16 @@ export type PlayerState = {
   actions: number
 }
 
+export type ActionAmount = {
+  has: number,
+  max: number
+}
+
+export type Action = "move" | "summon" | "follower" | "power"
+
 // State view of the game
 export type StateView = {
   board: Board,
-  players: [PlayerId, PlayerState][]
+  players: [PlayerId, PlayerState][],
+  actions: [Action, ActionAmount][]
 }
