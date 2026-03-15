@@ -8,10 +8,13 @@ import Data.Set qualified as Set
 
 import KOI.Basics (PlayerId)
 import Coord (FLoc, locationsUpTo)
+import Coord qualified
 import App.KOI
-import App.State (State(..))
-import App.Board (Board(..), Hex(..), Terrain(..), movePiece, playerPieceLocations)
+import App.State (State(..), summonSoldier)
+import App.Board (Board(..), Hex(..), Terrain(..), adjacentHexes, movePiece, playerPieceLocations)
 import App.Input (Input(..))
+import App.Piece (pieceOwner)
+import App.PlayerState (PlayerState(..))
 
 data Action = MoveFigures | SummonFigure | GainFollowers | GainPower
     deriving (Eq,Ord,Bounded)
@@ -77,6 +80,28 @@ doMove pid =
                       _ -> loop available
           _ -> pure ()
 
+doSummon :: PlayerId -> Interact ()
+doSummon pid =
+  do
+    st <- getState
+    case Map.lookup pid (statePlayers st) of
+      Just playerState
+        | playerSoldiers playerState > 0 ->
+            let board = stateBoard st
+                targets = validSummonTargets pid board
+            in
+              case targets of
+                [] -> pure ()
+                _ ->
+                  do
+                    choice <-
+                      choose pid "Select a hex for summoning"
+                        [ (ChooseHex loc, T.pack (show loc)) | loc <- targets ]
+                    case choice of
+                      ChooseHex loc -> update (summonSoldier pid loc st)
+                      _ -> pure ()
+      _ -> pure ()
+
 -- | Find valid move targets: up to 3 distance, on board, non-water, and empty.
 validMoveTargets :: Board -> FLoc -> [FLoc]
 validMoveTargets board start =
@@ -87,6 +112,32 @@ validMoveTargets board start =
   , null (hexPieces hex)
   , hexTerrain hex /= Water
   ]
+
+validSummonTargets :: PlayerId -> Board -> [FLoc]
+validSummonTargets pid board =
+  [ loc
+  | loc <- Set.toList candidateLocations
+  , Just hex <- [Map.lookup loc hexes]
+  , null (hexPieces hex)
+  , hexTerrain hex /= Water
+  ]
+  where
+    hexes = boardHexes board
+    occupiedLocations =
+      [ loc
+      | (loc, hex) <- Map.toList hexes
+      , any (isPlayerPieceOrStructure pid) (hexPieces hex)
+      ]
+
+    candidateLocations = Set.fromList
+      [ neighbor
+      | loc <- occupiedLocations
+      , dir <- Coord.allDirections
+      , let neighbor = Coord.flocAdvance loc dir 1
+      , adjacentHexes board loc neighbor
+      ]
+
+    isPlayerPieceOrStructure owner piece = pieceOwner piece == Just owner
 
 updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState

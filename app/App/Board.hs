@@ -213,8 +213,27 @@ playerPieceLocations pid board =
   , any isPlayerPiece (hexPieces hex)
   ]
   where
-    isPlayerPiece (PlayerPiece p' _) = pid == p'
-    isPlayerPiece _                  = False
+  isPlayerPiece (PlayerPiece p' _) = pid == p'
+  isPlayerPiece _                  = False
+
+-- | True when two hex locations are adjacent on the grid and are not
+-- separated by an explicit border edge.
+adjacentHexes :: Board -> FLoc -> FLoc -> Bool
+adjacentHexes board from to
+  | from == to = False
+  | not (Map.member from hexes && Map.member to hexes) = False
+  | otherwise =
+      case matchingDirections of
+        [] -> False
+        (dir : _) -> not (Map.member (Coord.flocEdge from dir) edges)
+  where
+  hexes = boardHexes board
+  edges = boardEdges board
+  matchingDirections =
+    [ dir
+    | dir <- Coord.allDirections
+    , Coord.flocAdvance from dir 1 == to
+    ]
 
 -- | Move all pieces of the given player from one location to another.
 movePiece :: PlayerId -> FLoc -> FLoc -> Board -> Board

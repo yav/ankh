@@ -11,6 +11,10 @@ data PlayerState = PlayerState {
 }
   deriving (Read, Show)
 
+spendSoldier :: PlayerState -> PlayerState
+spendSoldier playerState =
+  playerState { playerSoldiers = playerSoldiers playerState - 1 }
+
 instance ToJSON PlayerState where
   toJSON ps = JS.object
     [ "followers" .= playerFollowers ps

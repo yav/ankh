@@ -30,6 +30,12 @@ data StructureType
 data GuardianType = GuardianType
   deriving (Read, Show)
 
+pieceOwner :: Piece -> Maybe PlayerId
+pieceOwner piece =
+  case piece of
+    PlayerPiece playerId _ -> Just playerId
+    Structure mbPlayer _ -> mbPlayer
+
 -- JSON instances
 instance JS.ToJSON GuardianType where
   toJSON GuardianType = JS.object []
