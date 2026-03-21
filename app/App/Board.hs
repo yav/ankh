@@ -14,9 +14,9 @@ import Data.Aeson.Types (Parser)
 
 
 import KOI.Basics (PlayerId)
-import Coord (FLoc(..), ELoc(..), findRegions)
+import Coord (FLoc(..), ELoc(..), findRegions, locationsUpTo)
 import Coord qualified
-import App.Piece (Piece(..), PlayerPieceType(..), parsePiece)
+import App.Piece (Piece(..), PlayerPieceType(..), parsePiece, pieceOwner)
 
 
 
@@ -285,3 +285,34 @@ movePiece pid from to board
 
 addPieces :: [Piece] -> Hex -> Hex
 addPieces ps h = h { hexPieces = ps ++ hexPieces h }
+
+-- | Find valid move targets: up to 3 distance, on board, non-water, and empty.
+validMoveTargets :: Board -> FLoc -> [FLoc]
+validMoveTargets board start =
+  [ loc
+  | loc <- Set.toList (locationsUpTo 3 start)
+  , loc /= start
+  , Just hex <- [Map.lookup loc (boardHexes board)]
+  , null (hexPieces hex)
+  , hexTerrain hex /= Water
+  ]
+
+validSummonTargets :: PlayerId -> Board -> [FLoc]
+validSummonTargets pid board =
+  [ loc
+  | loc <- Set.toList candidateLocations
+  , Just hex <- [Map.lookup loc hexes]
+  , null (hexPieces hex)
+  , hexTerrain hex /= Water
+  ]
+  where
+    hexes = boardHexes board
+    occupiedLocations =
+      [ loc
+      | (loc, hex) <- Map.toList hexes
+      , any (isPlayerPieceOrStructure pid) (hexPieces hex)
+      ]
+
+    candidateLocations = adjacentLocations board occupiedLocations
+
+    isPlayerPieceOrStructure owner piece = pieceOwner piece == Just owner

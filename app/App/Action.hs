@@ -5,13 +5,11 @@ import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 
 import KOI.Basics (PlayerId)
-import Coord (FLoc, locationsUpTo)
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, summonSoldier)
-import App.Board (Board(..), Hex(..), Terrain(..), adjacentLocations, computeFollowersGain, movePiece, playerPieceLocations)
+import App.Board (Board(..), computeFollowersGain, movePiece, playerPieceLocations, validMoveTargets, validSummonTargets)
 import App.Input (Input(..))
-import App.Piece (pieceOwner)
 import App.PlayerState (PlayerState(..))
 
 
@@ -120,37 +118,6 @@ doGainFollowers pid =
     st <- getState
     let amount = computeFollowersGain (stateBoard st) pid
     update (gainFollowers pid amount st)
-
--- | Find valid move targets: up to 3 distance, on board, non-water, and empty.
-validMoveTargets :: Board -> FLoc -> [FLoc]
-validMoveTargets board start =
-  [ loc
-  | loc <- Set.toList (locationsUpTo 3 start)
-  , loc /= start
-  , Just hex <- [Map.lookup loc (boardHexes board)]
-  , null (hexPieces hex)
-  , hexTerrain hex /= Water
-  ]
-
-validSummonTargets :: PlayerId -> Board -> [FLoc]
-validSummonTargets pid board =
-  [ loc
-  | loc <- Set.toList candidateLocations
-  , Just hex <- [Map.lookup loc hexes]
-  , null (hexPieces hex)
-  , hexTerrain hex /= Water
-  ]
-  where
-    hexes = boardHexes board
-    occupiedLocations =
-      [ loc
-      | (loc, hex) <- Map.toList hexes
-      , any (isPlayerPieceOrStructure pid) (hexPieces hex)
-      ]
-
-    candidateLocations = adjacentLocations board occupiedLocations
-
-    isPlayerPieceOrStructure owner piece = pieceOwner piece == Just owner
 
 updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState
