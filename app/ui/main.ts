@@ -45,6 +45,7 @@ function uiRedraw (state: GameState) {
   // Get containers from existing HTML
   const questionContainer = document.getElementById("question-container")!
   const buttonsContainer = document.getElementById("buttons-container")!
+  const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
 
   // Clear containers
   document.getElementById("board-container")!.innerHTML = ""
@@ -65,6 +66,12 @@ function uiRedraw (state: GameState) {
   }
 
   configureQuestionActions(gui, conn)
+
+  if (regionsToggle !== null) {
+    regionsToggle.onchange = () => {
+      gui.boardComponent.setShowRegions(regionsToggle.checked)
+    }
+  }
 
   uiUpdate(state.game)
   conn.uiQuestions(state.questions)

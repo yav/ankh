@@ -1,23 +1,33 @@
 import { Grid, FLoc, newHexShape } from "../../hex-grid/src/index.ts"
 import type { Hex, Piece, Input } from "./protocol.ts"
 import type { Question } from "./common-js/connect.ts"
-import { Component, List } from "./common-js/combinators.ts"
+import { Component, List, Text } from "./common-js/combinators.ts"
 import { PieceComponent } from "./pieceComponent.ts"
 import { registerQuestionCleanup, respondToQuestion } from "./questionActions"
+
+export type HexDisplayData = {
+  hex: Hex,
+  regionId: string | null
+}
 
 /**
  * Component for rendering a hex with its pieces
  */
-export class HexComponent implements Component<Hex> {
+export class HexComponent implements Component<HexDisplayData> {
   private shape: HTMLElement
+  private regionLabel: HTMLElement
+  private regionLabelText: Text
   private pieces: List<Piece>
   private centerX: number
   private centerY: number
   private currentTerrain: string | undefined
   private currentQuestion: Question<Input> | null
   private questionClickHandler: (() => void) | null
+  private showRegion: boolean
+  private currentRegionId: string | null
+  private currentRegionClass: string
 
-  constructor(grid: Grid, key: string, offsetX: number, offsetY: number) {
+  constructor(grid: Grid, key: string, offsetX: number, offsetY: number, showRegion: boolean = false) {
     // Get container from DOM
     const container = document.getElementById("board-container")
     if (!container) {
@@ -43,6 +53,13 @@ export class HexComponent implements Component<Hex> {
     this.centerX = cx + offsetX
     this.centerY = cy + offsetY
 
+    this.regionLabel = document.createElement("div")
+    this.regionLabel.className = "hex-region-label hex-region-color-none"
+    this.regionLabel.style.left = `${this.centerX}px`
+    this.regionLabel.style.top = `${this.centerY}px`
+    this.regionLabel.style.display = "none"
+    this.regionLabelText = new Text(this.regionLabel, false)
+
     // Create list component for pieces
     this.pieces = new List((index) => {
       const piece = new PieceComponent(this.centerX, this.centerY, index)
@@ -50,9 +67,13 @@ export class HexComponent implements Component<Hex> {
     })
 
     container.appendChild(this.shape)
+    container.appendChild(this.regionLabel)
     this.currentTerrain = undefined
     this.currentQuestion = null
     this.questionClickHandler = null
+    this.showRegion = showRegion
+    this.currentRegionId = null
+    this.currentRegionClass = "hex-region-color-none"
   }
 
   private updateClasses(): void {
@@ -64,6 +85,34 @@ export class HexComponent implements Component<Hex> {
       classes.push("hex-question-choice")
     }
     this.shape.className = classes.join(" ")
+  }
+
+  private updateRegionLabel(): void {
+    const nextClass = this.currentRegionId === null
+      ? "hex-region-color-none"
+      : `hex-region-color-${Math.abs(Math.trunc(Number(this.currentRegionId))) % 10}`
+
+    if (this.currentRegionClass !== nextClass) {
+      this.regionLabel.classList.remove(this.currentRegionClass)
+      this.regionLabel.classList.add(nextClass)
+      this.currentRegionClass = nextClass
+    }
+
+    if (this.currentRegionId !== null) {
+      this.regionLabelText.set(this.currentRegionId)
+    } else {
+      this.regionLabelText.set("")
+    }
+  }
+
+  setRegionDisplay(show: boolean): boolean {
+    if (this.showRegion === show) {
+      return false
+    }
+
+    this.showRegion = show
+    this.regionLabel.style.display = this.showRegion ? "" : "none"
+    return true
   }
 
   private clearQuestionState(): void {
@@ -93,8 +142,15 @@ export class HexComponent implements Component<Hex> {
     registerQuestionCleanup(() => this.clearQuestionState())
   }
 
-  set(hex: Hex): boolean {
+  set(data: HexDisplayData): boolean {
     let changed = false
+    const { hex, regionId } = data
+
+    if (this.currentRegionId !== regionId) {
+      this.currentRegionId = regionId
+      this.updateRegionLabel()
+      changed = true
+    }
 
     // Update terrain class if changed
     if (this.currentTerrain !== hex.terrain) {
@@ -121,6 +177,8 @@ export class HexComponent implements Component<Hex> {
   destroy(): void {
     this.clearQuestionState()
     this.pieces.destroy()
+    this.regionLabelText.destroy()
+    this.regionLabel.remove()
     this.shape.remove()
   }
 }

@@ -30,6 +30,28 @@ html, body {
   background-color: #ECF0F1;
 }
 
+.board-controls {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #B8C4CC;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F4F7F8 100%);
+}
+
+.toggle-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #2C3E50;
+  user-select: none;
+}
+
+.toggle-option input {
+  width: 16px;
+  height: 16px;
+}
+
 .actions-container {
   display: flex;
   flex-wrap: wrap;
@@ -222,6 +244,88 @@ html, body {
     inset 0 -2px 4px rgba(0, 0, 0, 0.1),
     0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 0;
+}
+
+.hex-region-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: #2980B9;
+  border: 1px solid rgba(22, 33, 43, 0.35);
+  border-radius: 6px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
+  box-sizing: border-box;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.hex-region-color-0 {
+  background: #E67E22;
+  color: #FFFFFF;
+}
+
+.hex-region-color-1 {
+  background: #1ABC9C;
+  color: #FFFFFF;
+}
+
+.hex-region-color-2 {
+  background: #F1C40F;
+  color: #1F2A33;
+}
+
+.hex-region-color-3 {
+  background: #3498DB;
+  color: #FFFFFF;
+}
+
+.hex-region-color-4 {
+  background: #E74C3C;
+  color: #FFFFFF;
+}
+
+.hex-region-color-5 {
+  background: #2ECC71;
+  color: #0F2A19;
+}
+
+.hex-region-color-6 {
+  background: #9B59B6;
+  color: #FFFFFF;
+}
+
+.hex-region-color-7 {
+  background: #16A085;
+  color: #FFFFFF;
+}
+
+.hex-region-color-8 {
+  background: #F39C12;
+  color: #1F2A33;
+}
+
+.hex-region-color-9 {
+  background: #2980B9;
+  color: #FFFFFF;
+}
+
+.hex-region-color-none {
+  display: none;
 }
 
 .hex-question-choice {

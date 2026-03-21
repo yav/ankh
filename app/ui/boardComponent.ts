@@ -17,6 +17,7 @@ import {
   MapComponent
 } from "./common-js/combinators.ts"
 import { HexComponent } from "./hexComponent.ts"
+import type { HexDisplayData } from "./hexComponent.ts"
 import { EdgeComponent } from "./edgeComponent.ts"
 
 // Re-export for backwards compatibility
@@ -58,7 +59,7 @@ function calculateBoundingBox(
  */
 export class BoardComponent implements Component<Board> {
   private grid: Grid
-  private hexes: MapComponent<Hex>
+  private hexes: MapComponent<HexDisplayData>
   private edges: MapComponent<EdgeType>
   private offsetX: number
   private offsetY: number
@@ -83,8 +84,10 @@ export class BoardComponent implements Component<Board> {
     this.baseHeight = 0
 
     // Create map components for hexes and edges
-    this.hexes = new MapComponent<Hex>((key) => {
-      return new HexComponent(this.grid, key, this.offsetX, this.offsetY)
+    this.hexes = new MapComponent<HexDisplayData>((key) => {
+      const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
+      const showRegions = regionsToggle?.checked ?? false
+      return new HexComponent(this.grid, key, this.offsetX, this.offsetY, showRegions)
     })
 
     this.edges = new MapComponent<EdgeType>((key) => {
@@ -117,7 +120,8 @@ export class BoardComponent implements Component<Board> {
    */
   private parseBoardData(board: Board) {
     const faces: FLoc[] = []
-    const hexMap: { [key: string]: Hex } = {}
+    const hexMap: { [key: string]: HexDisplayData } = {}
+    const regionByHex = this.buildRegionIndex(board.regions)
 
     for (const hexWithLoc of board.hexes) {
       const [x, y] = hexWithLoc.location
@@ -129,7 +133,10 @@ export class BoardComponent implements Component<Board> {
         pieces: hexWithLoc.pieces
       }
       const key = `${x},${y}`
-      hexMap[key] = hex
+      hexMap[key] = {
+        hex,
+        regionId: regionByHex[key] ?? null
+      }
     }
 
     const edgeMap: { [key: string]: EdgeType } = {}
@@ -144,6 +151,26 @@ export class BoardComponent implements Component<Board> {
       hexMap,
       edgeMap
     }
+  }
+
+  private buildRegionIndex(regions: { [key: string]: HexPos[] }): { [key: string]: string } {
+    const result: { [key: string]: string } = {}
+
+    for (const regionId in regions) {
+      for (const [x, y] of regions[regionId]) {
+        result[`${x},${y}`] = regionId
+      }
+    }
+
+    return result
+  }
+
+  setShowRegions(show: boolean): void {
+    this.hexes.map((hexComponent) => {
+      if (hexComponent instanceof HexComponent) {
+        hexComponent.setRegionDisplay(show)
+      }
+    })
   }
 
   set(board: Board): boolean {

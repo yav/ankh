@@ -141,6 +141,13 @@ export class PieceComponent implements Component<Piece> {
     this.pieceElement.style.top = `${y + offsetY}px`
   }
 
+  setVisible(visible: boolean): void {
+    this.pieceElement.style.display = visible ? "" : "none"
+    if (!visible) {
+      this.tooltip.style.display = "none"
+    }
+  }
+
   destroy(): void {
     this.clearQuestionState()
     this.pieceElement.remove()
