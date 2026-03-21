@@ -316,3 +316,34 @@ validSummonTargets pid board =
     candidateLocations = adjacentLocations board occupiedLocations
 
     isPlayerPieceOrStructure owner piece = pieceOwner piece == Just owner
+
+
+-- Find the edges that separate the two regions.
+-- An edge is a separator, if it is between two hexagons `x` and `y`,
+-- and `x` is in the first region, and `y` is in the second.
+subregionEdges :: Set FLoc -> Set FLoc -> Set ELoc
+subregionEdges wholeRegion subRegion =
+  Set.fromList
+    [ Coord.flocEdge x dir
+    | x <- Set.toList subRegion
+    , dir <- Coord.allDirections
+    , let y = Coord.flocAdvance x dir 1
+    , Set.member y restOfWholeRegion
+    ]
+  where
+    restOfWholeRegion = Set.difference wholeRegion subRegion
+
+-- Find all hexagons in a region that are on its border.
+-- A hexagon is on the border when at least one neighboring hexagon
+-- is not a member of the region.
+borderHexagons :: Set FLoc -> Set FLoc
+borderHexagons region =
+  Set.filter isBorder region
+  where
+    isBorder loc =
+      any
+        (\dir ->
+          let neighbor = Coord.flocAdvance loc dir 1
+          in not (Set.member neighbor region)
+        )
+        Coord.allDirections

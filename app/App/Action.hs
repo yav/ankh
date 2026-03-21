@@ -3,14 +3,24 @@ module App.Action where
 import Data.Text qualified as T
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
+import Data.Set (Set)
 
 import KOI.Basics (PlayerId)
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, summonSoldier)
-import App.Board (Board(..), computeFollowersGain, movePiece, playerPieceLocations, validMoveTargets, validSummonTargets)
+import App.Board
+  ( Board(..)
+  , computeFollowersGain
+  , movePiece
+  , playerPieceLocations
+  , validMoveTargets
+  , validSummonTargets
+  )
 import App.Input (Input(..))
 import App.PlayerState (PlayerState(..))
+import App.SplitSelection qualified as SplitSelection
+import Coord (FLoc)
 
 
 doAction :: PlayerId -> Interact ()
@@ -122,3 +132,6 @@ doGainFollowers pid =
 updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState
   where updateB f' s = s { stateBoard = f' (stateBoard s) }
+
+chooseSplitSubregion :: PlayerId -> Interact (Set FLoc)
+chooseSplitSubregion = SplitSelection.chooseSplitSubregion

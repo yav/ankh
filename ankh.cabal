@@ -28,6 +28,7 @@ executable ankh
                       App.PlayerState,
                       App.ActionType,
                       App.Action,
+                      App.SplitSelection,
                       App.Event,
                       App.Conflict,
                       Coord
