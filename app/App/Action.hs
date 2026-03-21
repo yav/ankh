@@ -4,6 +4,7 @@ import Data.Text qualified as T
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Set (Set)
+import Data.List (foldl')
 
 import KOI.Basics (PlayerId)
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
@@ -11,9 +12,12 @@ import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, summonSoldier)
 import App.Board
   ( Board(..)
+  , EdgeType(..)
+  , RegionId
   , computeFollowersGain
   , movePiece
   , playerPieceLocations
+  , subregionEdges
   , validMoveTargets
   , validSummonTargets
   )
@@ -133,5 +137,40 @@ updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState
   where updateB f' s = s { stateBoard = f' (stateBoard s) }
 
-chooseSplitSubregion :: PlayerId -> Interact (Set FLoc)
-chooseSplitSubregion = SplitSelection.chooseSplitSubregion
+doSpliltRegion :: PlayerId -> Interact ()
+doSpliltRegion pid =
+  do
+    split <- SplitSelection.diSpliltRegion pid
+    case split of
+      Nothing -> pure ()
+      Just (rid, selected) -> do
+        updateBoard (applySelectedSplit rid selected)
+        pure ()
+
+-- | Apply a chosen split to the board by replacing the original region with the
+-- remainder, creating a new region for the selected cells, and adding
+-- separating edges as camel borders.
+applySelectedSplit :: RegionId -> Set FLoc -> Board -> Board
+applySelectedSplit oldRegionId selected board =
+  case Map.lookup oldRegionId (boardRegions board) of
+    Nothing -> board
+    Just wholeRegion ->
+      board
+        { boardRegions = regions2
+        , boardEdges = edges2
+        , boardNextRegionId = newRegionId + 1
+        }
+      where
+        selectedEdges = subregionEdges wholeRegion selected
+        remainingRegion = Set.difference wholeRegion selected
+        regions1 =
+          if Set.null remainingRegion
+            then Map.delete oldRegionId (boardRegions board)
+            else Map.insert oldRegionId remainingRegion (boardRegions board)
+        newRegionId = boardNextRegionId board
+        regions2 = Map.insert newRegionId selected regions1
+        edges2 =
+          foldl'
+            (\acc edge -> Map.insert edge CamelsEdge acc)
+            (boardEdges board)
+            (Set.toList selectedEdges)

@@ -29,6 +29,7 @@ data Board = Board
   { boardHexes   :: !(Map FLoc Hex)
   , boardRegions :: !(Map RegionId (Set FLoc))
   , boardEdges   :: !(Map ELoc EdgeType)
+  , boardNextRegionId :: !RegionId
   }
   deriving (Read, Show)
 
@@ -87,7 +88,7 @@ instance JS.ToJSON Hex where
 instance JS.ToJSON Board where
   toJSON x =
     case x of
-      Board hexes regions edges -> JS.object
+      Board hexes regions edges _nextRegionId -> JS.object
         [ "hexes" JS..=
             [ JS.object
                 [ "location" JS..= floc
@@ -114,6 +115,8 @@ instance JS.ToJSON Board where
 -- | Parse a Board from JSON using a player ID mapping
 -- Player ID 0 in JSON maps to Nothing (neutral)
 -- Other integers must be present in the playerMap
+-- XXX: We are just making up the initial region ordering,
+-- this should be in the map data.
 parseBoard :: Map Int PlayerId -> JS.Value -> Parser Board
 parseBoard playerMap = JS.withObject "Board" $ \obj -> do
   hexagons <- obj .: "hexagons"
@@ -122,7 +125,11 @@ parseBoard playerMap = JS.withObject "Board" $ \obj -> do
   edgesJson <- obj .: "edges"
   edges <- parseEdges edgesJson
   let regions = computeRegions hexes edges
-  pure (Board hexes regions edges)
+      nextRegionId =
+        case Map.lookupMax regions of
+          Just (rid, _) -> rid + 1
+          Nothing -> 0
+  pure (Board hexes regions edges nextRegionId)
 
 -- | Parse a single hexagon from JSON
 parseHexagon :: Map Int PlayerId -> JS.Value -> Parser (FLoc, Hex)

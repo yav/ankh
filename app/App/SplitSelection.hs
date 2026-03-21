@@ -1,5 +1,5 @@
 module App.SplitSelection
-  ( chooseSplitSubregion
+  ( diSpliltRegion
   ) where
 
 import Data.List (foldl')
@@ -14,6 +14,7 @@ import Coord qualified
 
 import App.Board
   ( Board(..)
+  , RegionId
   , borderHexagons
   , subregionEdges
   )
@@ -24,11 +25,15 @@ import App.State (State(..))
 -- | Ask the player to select a connected subregion for splitting.
 -- The selected subregion must remain connected by construction, and can end
 -- only when it has at least 6 hexes and no more than 6 separating edges.
-chooseSplitSubregion :: PlayerId -> Interact (Set FLoc)
-chooseSplitSubregion pid =
+diSpliltRegion :: PlayerId -> Interact (Maybe (RegionId, Set FLoc))
+diSpliltRegion pid =
   do
     board <- getsState stateBoard
-    let eligibleRegions = filter ((>= 12) . Set.size) (Map.elems (boardRegions board))
+    let eligibleRegions =
+          [ (rid, region)
+          | (rid, region) <- Map.toList (boardRegions board)
+          , Set.size region >= 12
+          ]
         regionStartData =
           [
             let starts = Set.toList (borderHexagons wholeRegion)
@@ -40,18 +45,18 @@ chooseSplitSubregion pid =
                     )
                     (Map.empty, [])
                     starts
-            in (wholeRegion, memo, reverse viableStartsRev)
-          | wholeRegion <- eligibleRegions
+            in (rid, wholeRegion, memo, reverse viableStartsRev)
+          | (rid, wholeRegion) <- eligibleRegions
           ]
         startInfo =
           Map.fromList
-            [ (loc, (wholeRegion, memo))
-            | (wholeRegion, memo, locs) <- regionStartData
+            [ (loc, (rid, wholeRegion, memo))
+            | (rid, wholeRegion, memo, locs) <- regionStartData
             , loc <- locs
             ]
         startCandidates = Map.keys startInfo
     case startCandidates of
-      [] -> pure Set.empty
+      [] -> pure Nothing
       _ -> do
         startChoice <-
           choose pid "Select the starting hex for split"
@@ -61,9 +66,12 @@ chooseSplitSubregion pid =
         case startChoice of
           ChooseHex start ->
             case Map.lookup start startInfo of
-              Just (wholeRegion, memo) -> splitLoop pid wholeRegion memo (Set.singleton start)
-              Nothing -> pure Set.empty
-          _ -> pure Set.empty
+              Just (rid, wholeRegion, memo) ->
+                do
+                  selected <- splitLoop pid wholeRegion memo (Set.singleton start)
+                  pure (Just (rid, selected))
+              Nothing -> pure Nothing
+          _ -> pure Nothing
 
 splitLoop :: PlayerId -> Set FLoc -> SplitMemo -> Set FLoc -> Interact (Set FLoc)
 splitLoop pid wholeRegion memo selected =
