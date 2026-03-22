@@ -8,6 +8,7 @@ import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.List (foldl', partition)
+import Data.Maybe (mapMaybe)
 import Data.Aeson qualified as JS
 import Data.Aeson ((.:))
 import Data.Aeson.Types (Parser)
@@ -115,32 +116,83 @@ instance JS.ToJSON Board where
 -- | Parse a Board from JSON using a player ID mapping
 -- Player ID 0 in JSON maps to Nothing (neutral)
 -- Other integers must be present in the playerMap
--- XXX: We are just making up the initial region ordering,
--- this should be in the map data.
 parseBoard :: Map Int PlayerId -> JS.Value -> Parser Board
-parseBoard playerMap = JS.withObject "Board" $ \obj -> do
-  hexagons <- obj .: "hexagons"
-  hexList <- mapM (parseHexagon playerMap) hexagons
-  let hexes = Map.fromList hexList
-  edgesJson <- obj .: "edges"
-  edges <- parseEdges edgesJson
-  let regions = computeRegions hexes edges
-      nextRegionId =
-        case Map.lookupMax regions of
-          Just (rid, _) -> rid + 1
-          Nothing -> 0
-  pure (Board hexes regions edges nextRegionId)
+parseBoard playerMap = JS.withObject "Board" $ \obj ->
+  do
+    hexagons <- obj .: "hexagons"
+    hexList <- mapM (parseHexagon playerMap) hexagons
+    let hexes = Map.fromList [ (pos, hex) | (pos, hex, _mbTag) <- hexList ]
+        regionTagsByHex = Map.fromList [ (pos, tag) | (pos, _hex, Just tag) <- hexList ]
+    edgesJson <- obj .: "edges"
+    edges <- parseEdges edgesJson
+    let computedRegions = computeRegions hexes edges
+    regions <- assignRegionIdsFromTags computedRegions regionTagsByHex
+    let nextRegionId =
+          case Map.lookupMax regions of
+            Just (rid, _) -> rid + 1
+            Nothing -> 0
+    pure (Board hexes regions edges nextRegionId)
 
--- | Parse a single hexagon from JSON
-parseHexagon :: Map Int PlayerId -> JS.Value -> Parser (FLoc, Hex)
-parseHexagon playerMap = JS.withObject "Hexagon" $ \obj -> do
-  location <- obj .: "location"
-  pos <- JS.parseJSON location
-  terrainText <- obj .: "terrain"
-  terrain <- parseTerrain terrainText
-  itemsJson <- obj .: "items"
-  pieces <- mapM (parsePiece (parsePlayerIdFromInt playerMap)) itemsJson
-  pure (pos, Hex terrain pieces)
+assignRegionIdsFromTags :: Map RegionId (Set FLoc) -> Map FLoc RegionId -> Parser (Map RegionId (Set FLoc))
+assignRegionIdsFromTags computedRegions regionTagsByHex =
+  do
+    taggedRegions <- mapM attachTag (Map.toList computedRegions)
+    let regions = Map.fromList taggedRegions
+        uniqueTagCount = Set.size (Set.fromList (map fst taggedRegions))
+    if uniqueTagCount /= length taggedRegions
+      then fail "Duplicate region tag values found across distinct computed regions"
+      else pure regions
+  where
+    attachTag (computedRegionId, regionHexes) =
+      case mapMaybe (`Map.lookup` regionTagsByHex) (Set.toList regionHexes) of
+        [] -> fail ("Computed region " ++ show computedRegionId ++ " has no region tag")
+        [tag] -> pure (tag, regionHexes)
+        tags -> fail
+          ("Computed region " ++ show computedRegionId
+          ++ " has multiple region tags: " ++ show (Set.toList (Set.fromList tags)))
+
+-- | Parse a single item from JSON.
+-- Returns either a regular piece or a region tag number.
+parseItem :: Map Int PlayerId -> JS.Value -> Parser (Maybe Piece, Maybe RegionId)
+parseItem playerMap = JS.withObject "Item" $ \obj ->
+  do
+    kind <- obj .: "kind"
+    case (kind :: Text) of
+      "region" ->
+        do
+          regionNumber <- obj .: "number"
+          if regionNumber > 0
+            then pure (Nothing, Just regionNumber)
+            else fail "Region tag number must be a positive integer"
+      _ ->
+        do
+          piece <- parsePiece (parsePlayerIdFromInt playerMap) (JS.Object obj)
+          pure (Just piece, Nothing)
+
+parseHexRegionTag :: FLoc -> [RegionId] -> Parser (Maybe RegionId)
+parseHexRegionTag pos regionTags =
+  case regionTags of
+    [] -> pure Nothing
+    [tag] -> pure (Just tag)
+    _ -> fail ("Hex at " ++ show pos ++ " contains multiple region tags")
+
+-- | Parse a single hexagon from JSON.
+-- Region tags are stored separately from regular pieces.
+parseHexagon :: Map Int PlayerId -> JS.Value -> Parser (FLoc, Hex, Maybe RegionId)
+parseHexagon playerMap = JS.withObject "Hexagon" $ \obj ->
+  do
+    location <- obj .: "location"
+    pos <- JS.parseJSON location
+    terrainText <- obj .: "terrain"
+    terrain <- parseTerrain terrainText
+    itemsJson <- obj .: "items"
+    parsedItems <- mapM (parseItem playerMap) itemsJson
+    let pieces = [ piece | (Just piece, _mbTag) <- parsedItems ]
+        regionTags = [ tag | (_mbPiece, Just tag) <- parsedItems ]
+
+    mbRegionTag <- parseHexRegionTag pos regionTags
+
+    pure (pos, Hex terrain pieces, mbRegionTag)
 
 -- | Parse terrain from text
 parseTerrain :: Text -> Parser Terrain
@@ -153,17 +205,19 @@ parseTerrain txt =
 
 -- | Parse edges from JSON
 parseEdges :: JS.Value -> Parser (Map ELoc EdgeType)
-parseEdges = JS.withArray "Edges" $ \arr -> do
-  edgeList <- mapM parseEdge (V.toList arr)
-  pure (Map.fromList edgeList)
+parseEdges = JS.withArray "Edges" $ \arr ->
+  do
+    edgeList <- mapM parseEdge (V.toList arr)
+    pure (Map.fromList edgeList)
 
 -- | Parse a single edge from JSON
 parseEdge :: JS.Value -> Parser (ELoc, EdgeType)
-parseEdge = JS.withObject "Edge" $ \obj -> do
-  location <- obj .: "location"
-  edgeLoc <- JS.parseJSON location
-  edgeType <- obj .: "type"
-  pure (edgeLoc, edgeType)
+parseEdge = JS.withObject "Edge" $ \obj ->
+  do
+    location <- obj .: "location"
+    edgeLoc <- JS.parseJSON location
+    edgeType <- obj .: "type"
+    pure (edgeLoc, edgeType)
 
 -- | Parse player ID from integer according to the mapping
 -- 0 maps to Nothing, other integers must be in the map
