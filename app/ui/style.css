@@ -24,6 +24,8 @@ html, body {
 
 /* Right pane - player info */
 .right-pane {
+  display: flex;
+  flex-direction: column;
   width: 300px;
   overflow: auto;
   padding: 16px;
@@ -62,6 +64,13 @@ html, body {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 18px;
+}
+
+.game-controls {
+  margin-top: auto;
+  padding-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .action-card {
@@ -115,11 +124,28 @@ html, body {
 }
 
 .btn {
-  border: 1px solid black;
+  border: 1px solid #2C3E50;
   margin: 5px;
-  padding: 0 5px 0 5px;
+  padding: 6px 10px;
   cursor: pointer;
   display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F4F7F8 100%);
+  color: #2C3E50;
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: linear-gradient(180deg, #FFFFFF 0%, #EAF4FB 100%);
+}
+
+.btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  margin: 0;
 }
 
 /* Board styling */

@@ -48,6 +48,13 @@ function main () {
     uiUpdate
   }
   conn = srvConnect(cb)
+
+  const undoButton = document.getElementById("undo-button") as HTMLButtonElement | null
+  if (undoButton !== null) {
+    undoButton.addEventListener("click", () => {
+      conn.sendJSON({ tag: "undo" })
+    })
+  }
 }
 
 // Redraw the whole state
