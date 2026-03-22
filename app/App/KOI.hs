@@ -1,9 +1,13 @@
 module App.KOI
   ( KOI(..)
   , Interact
+  , questionFor
   , module KOI.Interact
   ) where
 
+import Data.Text qualified as T
+
+import KOI.Basics (PlayerId(..))
 import KOI.Interact hiding (Interact)
 import KOI.Interact qualified as I
 
@@ -14,6 +18,9 @@ import App.Input(Input)
 data KOI = KOI
 
 type Interact = I.Interact KOI
+
+questionFor :: PlayerId -> T.Text -> T.Text
+questionFor (PlayerId pid) question = pid <> ": " <> question
 
 instance Component KOI where
   type AppState       KOI = State

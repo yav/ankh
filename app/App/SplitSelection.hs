@@ -50,7 +50,7 @@ doSpliltRegion pid =
     chooseStart startInfo startCandidates =
       do
         startChoice <-
-          choose pid "Select the starting hex for split"
+          choose pid (questionFor pid "Select the starting hex for split")
             [ (ChooseHex loc, T.pack (show loc))
             | loc <- startCandidates
             ]
@@ -89,7 +89,7 @@ splitLoop pid wholeRegion memo selected =
     case choicesWithEnd of
       [] -> pure selected
       _ -> do
-        choice <- choose pid "Select hexagons for the new subregion" choicesWithEnd
+        choice <- choose pid (questionFor pid "Select hexagons for the new subregion") choicesWithEnd
         case choice of
           ChooseHex loc
             | Set.member loc candidateHexes -> splitLoop pid wholeRegion memo1 (Set.insert loc selected)

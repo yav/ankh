@@ -42,7 +42,7 @@ doAction pid =
       _ ->
         do
           choice <-
-            choose pid "Choose an action"
+            choose pid (questionFor pid "Choose an action")
               [ (ChooseAction act, actionHelp st pid act)
               | (act, _) <- availableActions
               ]
@@ -86,7 +86,7 @@ doMove pid =
                            | loc <- Set.toList available ]
             stopChoice = (TextQuestion "End Moving", "I am done moving pieces")
 
-        choice <- choose pid "Select a piece to move" (stopChoice : pieceChoices)
+        choice <- choose pid (questionFor pid "Select a piece to move") (stopChoice : pieceChoices)
         case choice of
           ChoosePiece loc ->
             do
@@ -96,7 +96,7 @@ doMove pid =
                 else
                   do
                     targetChoice <-
-                      choose pid "Select destination"
+                      choose pid (questionFor pid "Select destination")
                         [ (ChooseHex t, T.pack (show t)) | t <- targets ]
                     case targetChoice of
                       ChooseHex to ->
@@ -121,7 +121,7 @@ doSummon pid =
                 _ ->
                   do
                     choice <-
-                      choose pid "Select a hex for summoning"
+                      choose pid (questionFor pid "Select a hex for summoning")
                         [ (ChooseHex loc, T.pack (show loc)) | loc <- targets ]
                     case choice of
                       ChooseHex loc -> update (summonSoldier pid loc st)
