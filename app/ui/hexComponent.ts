@@ -57,7 +57,7 @@ export class HexComponent implements Component<HexDisplayData> {
     this.regionLabel.className = "hex-region-label hex-region-color-none"
     this.regionLabel.style.left = `${this.centerX}px`
     this.regionLabel.style.top = `${this.centerY}px`
-    this.regionLabel.style.display = "none"
+    this.regionLabel.style.display = showRegion ? "" : "none"
     this.regionLabelText = new Text(this.regionLabel, false)
 
     // Create list component for pieces
@@ -106,13 +106,10 @@ export class HexComponent implements Component<HexDisplayData> {
   }
 
   setRegionDisplay(show: boolean): boolean {
-    if (this.showRegion === show) {
-      return false
-    }
-
+    const changed = this.showRegion !== show
     this.showRegion = show
     this.regionLabel.style.display = this.showRegion ? "" : "none"
-    return true
+    return changed
   }
 
   private clearQuestionState(): void {

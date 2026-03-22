@@ -28,6 +28,17 @@ let gui: GUI;
 
 const actionOrder: Action[] = ["move", "summon", "follower", "power"]
 
+function syncRegionsToggle(): void {
+  const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
+  if (regionsToggle === null) {
+    return
+  }
+
+  if (gui !== undefined) {
+    gui.boardComponent.setShowRegions(regionsToggle.checked)
+  }
+}
+
 export default
 function main () {
   const cb = {
@@ -68,12 +79,13 @@ function uiRedraw (state: GameState) {
   configureQuestionActions(gui, conn)
 
   if (regionsToggle !== null) {
-    regionsToggle.onchange = () => {
-      gui.boardComponent.setShowRegions(regionsToggle.checked)
-    }
+    regionsToggle.onchange = syncRegionsToggle
   }
 
   uiUpdate(state.game)
+  if (regionsToggle !== null) {
+    syncRegionsToggle()
+  }
   conn.uiQuestions(state.questions)
 }
 
