@@ -68,7 +68,7 @@
         <div class="control-section control-section-spaced" id="item-selectors" style="display: none;">
           <div class="selector-flex-container">
             <!-- Player selector -->
-            <div class="selector-container">
+            <div class="selector-container" id="player-selector-container">
               <label>Player:</label>
               <div class="selector-radio-group">
                 <label class="block-radio-label">
@@ -128,6 +128,14 @@
                   <input type="radio" name="itemKind" value="pyramid" />
                   <span>Pyramid</span>
                 </label>
+                <label class="block-radio-label">
+                  <input type="radio" name="itemKind" value="region" />
+                  <span>Region Tag</span>
+                </label>
+              </div>
+              <div id="region-number-controls" class="region-number-controls" style="display: none;">
+                <label for="region-number-input">Region Number:</label>
+                <input type="number" id="region-number-input" min="1" step="1" value="1" />
               </div>
             </div>
           </div>

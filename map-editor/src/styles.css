@@ -154,6 +154,16 @@ body {
   mask-image: url(/pyramid.svg);
 }
 
+.hex-element.item-region {
+  background-color: #f8fafc;
+  color: #1f2933;
+  border: 2px solid #334e68;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  text-shadow: none;
+}
+
 /* Item type color indicator */
 .item-type-indicator {
   display: inline-block;
@@ -324,6 +334,20 @@ body {
 /* Radio group container */
 .selector-radio-group {
   margin-top: 8px;
+}
+
+.region-number-controls {
+  margin-top: 12px;
+}
+
+.region-number-controls label {
+  margin-bottom: 4px;
+}
+
+.region-number-controls input[type="number"] {
+  width: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
 }
 
 /* Block-style radio label */

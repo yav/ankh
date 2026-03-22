@@ -7,6 +7,20 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
     renderGrid(leftPane, config)
   }
 
+  const updateItemSelectionControls = () => {
+    const playerSelectorContainer = document.getElementById("player-selector-container") as HTMLElement | null
+    const regionNumberControls = document.getElementById("region-number-controls") as HTMLElement | null
+    const isRegion = config.selectedItemKind === "region"
+
+    if (playerSelectorContainer !== null) {
+      playerSelectorContainer.style.display = isRegion ? "none" : "block"
+    }
+
+    if (regionNumberControls !== null) {
+      regionNumberControls.style.display = isRegion ? "block" : "none"
+    }
+  }
+
   // Get references to HTML elements
   const debugHoverCheckbox = document.getElementById("debug-hover-checkbox") as HTMLInputElement
   const rectWidthInput = document.getElementById("rect-width") as HTMLInputElement
@@ -19,6 +33,7 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
   const terrainSelectorsContainer = document.getElementById("terrain-selectors") as HTMLElement
   const itemKindRadios = document.querySelectorAll<HTMLInputElement>('input[name="itemKind"]')
   const playerRadios = document.querySelectorAll<HTMLInputElement>('input[name="player"]')
+  const regionNumberInput = document.getElementById("region-number-input") as HTMLInputElement | null
   const terrainTypeRadios = document.querySelectorAll<HTMLInputElement>('input[name="terrainType"]')
   const edgeTerrainTypeRadios = document.querySelectorAll<HTMLInputElement>('input[name="edgeTerrainType"]')
   const saveButton = document.getElementById("save-button") as HTMLButtonElement
@@ -60,6 +75,7 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
   itemKindRadios.forEach((radio) => {
     radio.addEventListener("change", () => {
       config.selectedItemKind = radio.value as ItemKind
+      updateItemSelectionControls()
       updateGrid()
     })
   })
@@ -70,6 +86,15 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
       updateGrid()
     })
   })
+
+  if (regionNumberInput !== null) {
+    regionNumberInput.addEventListener("input", () => {
+      const parsed = Number.parseInt(regionNumberInput.value, 10)
+      if (Number.isInteger(parsed) && parsed > 0) {
+        config.selectedRegionNumber = parsed
+      }
+    })
+  }
 
   terrainTypeRadios.forEach((radio) => {
     radio.addEventListener("change", () => {
@@ -131,7 +156,12 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
       rectHeightLabel.textContent = `Height: ${config.rectHeight}`
       rectStartsWideCheckbox.checked = config.rectStartsWide
 
+      if (regionNumberInput !== null) {
+        regionNumberInput.value = config.selectedRegionNumber.toString()
+      }
+
       // Re-render grid
+      updateItemSelectionControls()
       updateGrid()
     } catch (error) {
       alert(`Error loading file: ${error instanceof Error ? error.message : "Unknown error"}`)
@@ -140,6 +170,11 @@ function setupControls(leftPane: HTMLElement, config: GridConfig): void {
     // Reset file input
     loadFileInput.value = ""
   })
+
+  if (regionNumberInput !== null) {
+    regionNumberInput.value = config.selectedRegionNumber.toString()
+  }
+  updateItemSelectionControls()
 }
 
 // Validates that the data matches the BoardData structure
@@ -165,7 +200,11 @@ function validateBoardData(data: unknown): data is BoardData {
     for (const item of h.items) {
       if (typeof item !== "object" || item === null) return false
       const i = item as Record<string, unknown>
-      if (typeof i.player !== "number" || typeof i.kind !== "string") return false
+      if (i.kind === "region") {
+        if (!Number.isInteger(i.number) || (i.number as number) <= 0) return false
+      } else {
+        if (typeof i.player !== "number" || typeof i.kind !== "string") return false
+      }
     }
   }
 
@@ -198,6 +237,7 @@ function main() {
     editMode: "none",
     selectedPlayer: 1,  // Default to Player 1
     selectedItemKind: "soldier",  // Default item kind
+    selectedRegionNumber: 1,
     selectedTerrainType: "plains",  // Default hex terrain type
     selectedEdgeType: "deleted"  // Default edge type
   }

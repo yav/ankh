@@ -264,7 +264,12 @@
         -3
       ],
       "terrain": "desert",
-      "items": []
+      "items": [
+        {
+          "kind": "region",
+          "number": 3
+        }
+      ]
     },
     {
       "location": [
@@ -625,7 +630,12 @@
         -7
       ],
       "terrain": "plains",
-      "items": []
+      "items": [
+        {
+          "kind": "region",
+          "number": 2
+        }
+      ]
     },
     {
       "location": [
@@ -750,7 +760,12 @@
         -9
       ],
       "terrain": "desert",
-      "items": []
+      "items": [
+        {
+          "kind": "region",
+          "number": 1
+        }
+      ]
     },
     {
       "location": [

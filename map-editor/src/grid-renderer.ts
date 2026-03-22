@@ -10,21 +10,29 @@ export type TerrainType = "plains" | "desert" | "water" | "deleted"
 // Edge types
 export type EdgeType = "deleted" | "water" | "camels"
 
+export type PieceKind = "god" | "soldier" | "temple" | "obelisk" | "pyramid"
+
 // Item kind represents the actual game entity type
-export type ItemKind = "god" | "soldier" | "temple" | "obelisk" | "pyramid"
+export type ItemKind = PieceKind | "region"
+
+export type PieceItemData = { player: number; kind: PieceKind }
+export type RegionItemData = { kind: "region"; number: number }
+export type ExportedItemData = PieceItemData | RegionItemData
 
 // Counter for generating unique item IDs
 let nextItemId = 0
 
 // Item class represents a game piece on the board
 export class Item {
-  player: number  // Player number (0=neutral, 1-5)
+  player: number  // Player number (0=neutral, 1-5); 0 is used for region labels
   kind: ItemKind
+  number: number  // Region number when kind is "region"; otherwise 0
   id: number  // Unique identifier for this item
 
-  constructor(player: number, kind: ItemKind) {
+  constructor(player: number, kind: ItemKind, number: number = 0) {
     this.player = player
     this.kind = kind
+    this.number = number
     this.id = nextItemId++
   }
 }
@@ -51,6 +59,7 @@ export interface GridConfig {
   editMode: "none" | "add" | "remove" | "terrain"
   selectedPlayer: number // Currently selected player (0=neutral, 1-5) for add mode
   selectedItemKind: ItemKind // Currently selected item kind for add mode
+  selectedRegionNumber: number // Region number used when selected item kind is "region"
   selectedTerrainType: TerrainType // Currently selected hex terrain type for terrain mode
   selectedEdgeType: EdgeType // Currently selected edge type for terrain mode
 }
@@ -63,7 +72,7 @@ export type BoardData = {
   hexagons: {
     location: [number, number]  // Array format: [x, y]
     terrain: TerrainType
-    items: { player: number; kind: ItemKind }[]
+    items: ExportedItemData[]
   }[]
   edges: {
     location: [number, number, number]  // Array format: [x, y, edge]
@@ -97,10 +106,19 @@ export function exportGridData(config: GridConfig): BoardData {
       hexagons.push({
         location: [loc.x, loc.y],
         terrain: data.terrain,
-        items: data.items.map(item => ({
-          player: item.player,
-          kind: item.kind
-        }))
+        items: data.items.map(item => {
+          if (item.kind === "region") {
+            return {
+              kind: "region",
+              number: item.number
+            }
+          }
+
+          return {
+            player: item.player,
+            kind: item.kind
+          }
+        })
       })
     }
   }
@@ -137,7 +155,13 @@ export function importGridData(data: BoardData): GridConfig {
   for (const hex of data.hexagons) {
     const [x, y] = hex.location
     const loc = new FLoc(x, y)
-    const items = hex.items.map(item => new Item(item.player, item.kind))
+    const items = hex.items.map((item) => {
+      if (item.kind === "region") {
+        return new Item(0, "region", item.number)
+      }
+
+      return new Item(item.player, item.kind)
+    })
     hexInfo.setLoc(loc, new LocInfo(hex.terrain, items))
   }
 
@@ -160,6 +184,7 @@ export function importGridData(data: BoardData): GridConfig {
     editMode: "none",
     selectedPlayer: 1,
     selectedItemKind: "soldier",
+    selectedRegionNumber: 1,
     selectedTerrainType: "plains",
     selectedEdgeType: "deleted"
   }
@@ -322,17 +347,27 @@ function renderHexagonItems(
 
     const element = document.createElement("div")
     element.className = "hex-element"
-    element.classList.add(`player-${item.player}-color`)
     element.classList.add(`item-${item.kind}`)
+
+    if (item.kind !== "region") {
+      element.classList.add(`player-${item.player}-color`)
+    }
+
     element.style.left = `${x - totalSize / 2}px`
     element.style.top = `${y - totalSize / 2}px`
 
-    // All items now use CSS masks with SVG images (no text needed)
+    if (item.kind === "region") {
+      element.textContent = String(item.number)
+    }
 
     // Add hover tooltip for item info
     element.addEventListener("mouseenter", () => {
-      const playerLabel = item.player === 0 ? "Neutral" : `Player ${item.player}`
-      ctx.infoTooltip.textContent = `${item.kind} (${playerLabel})`
+      if (item.kind === "region") {
+        ctx.infoTooltip.textContent = `Region ${item.number}`
+      } else {
+        const playerLabel = item.player === 0 ? "Neutral" : `Player ${item.player}`
+        ctx.infoTooltip.textContent = `${item.kind} (${playerLabel})`
+      }
       ctx.infoTooltip.style.display = "block"
     })
 
@@ -422,8 +457,25 @@ function renderHexagon(
   // Add click handler for adding items
   if (config.editMode === "add") {
     shape.addEventListener("click", () => {
-      if (data.terrain !== "deleted" && data.items.length < 3) {
-        data.items.push(new Item(config.selectedPlayer, config.selectedItemKind))
+      if (data.terrain !== "deleted") {
+        if (config.selectedItemKind === "region") {
+          const regionNumber = Number.parseInt(String(config.selectedRegionNumber), 10)
+          if (!Number.isInteger(regionNumber) || regionNumber <= 0) {
+            return
+          }
+
+          const withoutRegion = data.items.filter((item) => item.kind !== "region")
+          data.items.length = 0
+          data.items.push(...withoutRegion)
+          if (data.items.length < 3) {
+            data.items.push(new Item(0, "region", regionNumber))
+          }
+        } else if (data.items.length < 3) {
+          data.items.push(new Item(config.selectedPlayer, config.selectedItemKind))
+        } else {
+          return
+        }
+
         renderGrid(leftPane, config)
       }
     })
