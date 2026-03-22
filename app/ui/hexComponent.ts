@@ -7,7 +7,8 @@ import { registerQuestionCleanup, respondToQuestion } from "./questionActions"
 
 export type HexDisplayData = {
   hex: Hex,
-  regionId: string | null
+  regionId: string | null,
+  splitSelected: boolean
 }
 
 /**
@@ -26,6 +27,7 @@ export class HexComponent implements Component<HexDisplayData> {
   private showRegion: boolean
   private currentRegionId: string | null
   private currentRegionClass: string
+  private currentSplitSelected: boolean
 
   constructor(grid: Grid, key: string, offsetX: number, offsetY: number, showRegion: boolean = false) {
     // Get container from DOM
@@ -74,6 +76,7 @@ export class HexComponent implements Component<HexDisplayData> {
     this.showRegion = showRegion
     this.currentRegionId = null
     this.currentRegionClass = "hex-region-color-none"
+    this.currentSplitSelected = false
   }
 
   private updateClasses(): void {
@@ -83,6 +86,9 @@ export class HexComponent implements Component<HexDisplayData> {
     }
     if (this.currentQuestion !== null) {
       classes.push("hex-question-choice")
+    }
+    if (this.currentSplitSelected) {
+      classes.push("hex-split-selected")
     }
     this.shape.className = classes.join(" ")
   }
@@ -117,20 +123,17 @@ export class HexComponent implements Component<HexDisplayData> {
       this.shape.removeEventListener("click", this.questionClickHandler)
       this.questionClickHandler = null
     }
+    const pieceElements = this.pieces.getElements() as PieceComponent[]
+    pieceElements.forEach((piece) => piece.setPassThrough(false))
     this.currentQuestion = null
     this.shape.removeAttribute("title")
     this.updateClasses()
   }
 
   handleChooseHexQuestion(question: Question<Input>): void {
-    const pieceElements = this.pieces.getElements() as PieceComponent[]
-    if (pieceElements.length > 0) {
-      this.clearQuestionState()
-      pieceElements.forEach((piece) => piece.handleChooseHexQuestion(question))
-      return
-    }
-
     this.clearQuestionState()
+    const pieceElements = this.pieces.getElements() as PieceComponent[]
+    pieceElements.forEach((piece) => piece.setPassThrough(true))
     this.currentQuestion = question
     this.shape.title = question.chHelp
     this.questionClickHandler = () => respondToQuestion(question)
@@ -139,9 +142,16 @@ export class HexComponent implements Component<HexDisplayData> {
     registerQuestionCleanup(() => this.clearQuestionState())
   }
 
+  handleChoosePieceQuestion(question: Question<Input>): void {
+    this.clearQuestionState()
+    const pieceElements = this.pieces.getElements() as PieceComponent[]
+    pieceElements.forEach((piece) => piece.setPassThrough(false))
+    pieceElements.forEach((piece) => piece.handleChooseHexQuestion(question))
+  }
+
   set(data: HexDisplayData): boolean {
     let changed = false
-    const { hex, regionId } = data
+    const { hex, regionId, splitSelected } = data
 
     if (this.currentRegionId !== regionId) {
       this.currentRegionId = regionId
@@ -152,6 +162,12 @@ export class HexComponent implements Component<HexDisplayData> {
     // Update terrain class if changed
     if (this.currentTerrain !== hex.terrain) {
       this.currentTerrain = hex.terrain
+      this.updateClasses()
+      changed = true
+    }
+
+    if (this.currentSplitSelected !== splitSelected) {
+      this.currentSplitSelected = splitSelected
       this.updateClasses()
       changed = true
     }

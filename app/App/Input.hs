@@ -8,6 +8,7 @@ import App.ActionType (Action)
 
 data Input
   = ChooseHex FLoc
+  | ChoosePiece FLoc
   | ChooseAction Action
   | TextQuestion Text
   deriving (Read,Show,Eq,Ord,Generic,JS.ToJSON,JS.FromJSON)

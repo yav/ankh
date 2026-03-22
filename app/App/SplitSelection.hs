@@ -1,5 +1,5 @@
 module App.SplitSelection
-  ( diSpliltRegion
+  ( doSpliltRegion
   ) where
 
 import Data.List (foldl')
@@ -21,12 +21,13 @@ import App.Board
 import App.Input (Input(..))
 import App.KOI
 import App.State (State(..))
+import qualified App.State as State
 
 -- | Ask the player to select a connected subregion for splitting.
 -- The selected subregion must remain connected by construction, and can end
 -- only when it has at least 6 hexes and no more than 6 separating edges.
-diSpliltRegion :: PlayerId -> Interact (Maybe (RegionId, Set FLoc))
-diSpliltRegion pid =
+doSpliltRegion :: PlayerId -> Interact (Maybe (RegionId, Set FLoc))
+doSpliltRegion pid =
   do
     board <- getsState stateBoard
     let eligibleRegions =
@@ -34,30 +35,20 @@ diSpliltRegion pid =
           | (rid, region) <- Map.toList (boardRegions board)
           , Set.size region >= 12
           ]
-        regionStartData =
-          [
-            let starts = Set.toList (borderHexagons wholeRegion)
-                (memo, viableStartsRev) =
-                  foldl'
-                    (\(m, acc) loc ->
-                      let (m1, ok) = splitHasViableFutureWithMemo wholeRegion m (Set.singleton loc)
-                      in if ok then (m1, loc : acc) else (m1, acc)
-                    )
-                    (Map.empty, [])
-                    starts
-            in (rid, wholeRegion, memo, reverse viableStartsRev)
-          | (rid, wholeRegion) <- eligibleRegions
-          ]
         startInfo =
           Map.fromList
-            [ (loc, (rid, wholeRegion, memo))
-            | (rid, wholeRegion, memo, locs) <- regionStartData
-            , loc <- locs
+            [ (loc, (rid, wholeRegion))
+            | (rid, wholeRegion) <- eligibleRegions
+            , loc <- Set.toList (borderHexagons wholeRegion)
             ]
         startCandidates = Map.keys startInfo
     case startCandidates of
       [] -> pure Nothing
-      _ -> do
+      _ -> chooseStart startInfo startCandidates
+  where
+    chooseStart _ [] = pure Nothing
+    chooseStart startInfo startCandidates =
+      do
         startChoice <-
           choose pid "Select the starting hex for split"
             [ (ChooseHex loc, T.pack (show loc))
@@ -66,16 +57,25 @@ diSpliltRegion pid =
         case startChoice of
           ChooseHex start ->
             case Map.lookup start startInfo of
-              Just (rid, wholeRegion, memo) ->
+              Just (rid, wholeRegion) ->
                 do
-                  selected <- splitLoop pid wholeRegion memo (Set.singleton start)
-                  pure (Just (rid, selected))
-              Nothing -> pure Nothing
+                  let (memo, viable) = splitHasViableFutureWithMemo wholeRegion Map.empty (Set.singleton start)
+                  if viable
+                    then
+                      do
+                        selected <- splitLoop pid wholeRegion memo (Set.singleton start)
+                        pure (Just (rid, selected))
+                    else
+                      chooseStart startInfo (filter (/= start) startCandidates)
+              Nothing -> chooseStart startInfo startCandidates
           _ -> pure Nothing
 
 splitLoop :: PlayerId -> Set FLoc -> SplitMemo -> Set FLoc -> Interact (Set FLoc)
 splitLoop pid wholeRegion memo selected =
   do
+    st <- getState
+    update (State.setSplitSelection selected st)
+
     let (memo1, candidateHexes) = selectableNext wholeRegion memo selected
         canEnd = endSplitValid wholeRegion selected
         choices =

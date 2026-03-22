@@ -2,6 +2,7 @@ module App.State where
 
 import KOI.Basics
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import App.ActionType
 import App.Board
 import Coord (FLoc)
@@ -12,6 +13,7 @@ data State = State
   { stateBoard   :: Board
   , statePlayers :: Map.Map PlayerId PlayerState
   , stateActions :: Map.Map Action ActionAmount
+  , stateSplitSelection :: Set.Set FLoc
   }
   deriving (Read, Show)
 
@@ -37,3 +39,9 @@ summonSoldier pid loc st =
   where
     board = stateBoard st
     board1 = board { boardHexes = Map.adjust (addPieces [PlayerPiece pid Soldier]) loc (boardHexes board) }
+
+setSplitSelection :: Set.Set FLoc -> State -> State
+setSplitSelection selected st = st { stateSplitSelection = selected }
+
+clearSplitSelection :: State -> State
+clearSplitSelection = setSplitSelection Set.empty

@@ -91,13 +91,17 @@ export class PieceComponent implements Component<Piece> {
     this.updateClasses()
   }
 
-  handleChooseHexQuestion(question: Question<Input>): void {
+  handleChoosePieceQuestion(question: Question<Input>): void {
     this.clearQuestionState()
     this.pieceElement.title = question.chHelp
     this.questionClickHandler = () => respondToQuestion(question)
     this.pieceElement.addEventListener("click", this.questionClickHandler)
     this.updateClasses()
     registerQuestionCleanup(() => this.clearQuestionState())
+  }
+
+  handleChooseHexQuestion(question: Question<Input>): void {
+    this.handleChoosePieceQuestion(question)
   }
 
   set(piece: Piece): boolean {
@@ -144,6 +148,13 @@ export class PieceComponent implements Component<Piece> {
   setVisible(visible: boolean): void {
     this.pieceElement.style.display = visible ? "" : "none"
     if (!visible) {
+      this.tooltip.style.display = "none"
+    }
+  }
+
+  setPassThrough(passThrough: boolean): void {
+    this.pieceElement.style.pointerEvents = passThrough ? "none" : "auto"
+    if (passThrough) {
       this.tooltip.style.display = "none"
     }
   }

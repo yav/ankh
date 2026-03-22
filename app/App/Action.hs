@@ -10,6 +10,7 @@ import KOI.Basics (PlayerId)
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, summonSoldier)
+import qualified App.State as State
 import App.Board
   ( Board(..)
   , EdgeType(..)
@@ -59,6 +60,7 @@ runAction pid act =
     SummonFigure -> doSummon pid
     GainFollowers -> doGainFollowers pid
     GainPower -> pure ()
+    TestSplitRegion -> doSpliltRegion pid
 
 actionHelp :: State -> PlayerId -> Action -> T.Text
 actionHelp st pid act =
@@ -80,13 +82,13 @@ doMove pid =
     loop available =
       do
         board <- getsState stateBoard
-        let pieceChoices = [ (ChooseHex loc, "Move piece at " <> T.pack (show loc))
+        let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> T.pack (show loc))
                            | loc <- Set.toList available ]
             stopChoice = (TextQuestion "End Moving", "I am done moving pieces")
 
         choice <- choose pid "Select a piece to move" (stopChoice : pieceChoices)
         case choice of
-          ChooseHex loc ->
+          ChoosePiece loc ->
             do
               let targets = validMoveTargets board loc
               if null targets
@@ -140,7 +142,14 @@ updateBoard f = update . updateB f =<< getState
 doSpliltRegion :: PlayerId -> Interact ()
 doSpliltRegion pid =
   do
-    split <- SplitSelection.diSpliltRegion pid
+    st0 <- getState
+    update (State.clearSplitSelection st0)
+
+    split <- SplitSelection.doSpliltRegion pid
+
+    st1 <- getState
+    update (State.clearSplitSelection st1)
+
     case split of
       Nothing -> pure ()
       Just (rid, selected) -> do

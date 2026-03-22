@@ -26,7 +26,7 @@ type GameState = {
 let conn: Connection<Input>;
 let gui: GUI;
 
-const actionOrder: Action[] = ["move", "summon", "follower", "power"]
+const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion"]
 
 function syncRegionsToggle(): void {
   const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
@@ -131,13 +131,17 @@ function uiQuestion (q: Question<Input>) {
     case "ChooseHex":
       gui.boardComponent.handleChooseHexQuestion(q.chChoice.contents, q)
       break
+
+    case "ChoosePiece":
+      gui.boardComponent.handleChoosePieceQuestion(q.chChoice.contents, q)
+      break
   }
 }
 
 
 function uiUpdate(state: StateView) {
   // Update board display using component
-  gui.boardComponent.set(state.board)
+  gui.boardComponent.set(state.board, state.splitSelection)
 
   // Update action display
   gui.actionsComponent.set(state.actions)

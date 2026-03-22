@@ -8,6 +8,7 @@ export type PlayerId = string
 // This mirrors App.Input and its default Aeson encoding.
 export type Input =
   | { tag: "ChooseHex", contents: HexPos }
+  | { tag: "ChoosePiece", contents: HexPos }
   | { tag: "ChooseAction", contents: Action }
   | { tag: "TextQuestion", contents: string }
 
@@ -78,11 +79,12 @@ export type ActionAmount = {
   max: number
 }
 
-export type Action = "move" | "summon" | "follower" | "power"
+export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion"
 
 // State view of the game
 export type StateView = {
   board: Board,
   players: [PlayerId, PlayerState][],
-  actions: [Action, ActionAmount][]
+  actions: [Action, ActionAmount][],
+  splitSelection: HexPos[]
 }

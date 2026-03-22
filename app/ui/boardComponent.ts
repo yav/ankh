@@ -118,10 +118,11 @@ export class BoardComponent implements Component<Board> {
   /**
    * Parses the board JSON into maps for rendering
    */
-  private parseBoardData(board: Board) {
+  private parseBoardData(board: Board, splitSelection: HexPos[]) {
     const faces: FLoc[] = []
     const hexMap: { [key: string]: HexDisplayData } = {}
     const regionByHex = this.buildRegionIndex(board.regions)
+    const splitSelectionIndex = this.buildSelectionIndex(splitSelection)
 
     for (const hexWithLoc of board.hexes) {
       const [x, y] = hexWithLoc.location
@@ -135,7 +136,8 @@ export class BoardComponent implements Component<Board> {
       const key = `${x},${y}`
       hexMap[key] = {
         hex,
-        regionId: regionByHex[key] ?? null
+        regionId: regionByHex[key] ?? null,
+        splitSelected: splitSelectionIndex[key] ?? false
       }
     }
 
@@ -165,6 +167,16 @@ export class BoardComponent implements Component<Board> {
     return result
   }
 
+  private buildSelectionIndex(selection: HexPos[]): { [key: string]: boolean } {
+    const result: { [key: string]: boolean } = {}
+
+    for (const [x, y] of selection) {
+      result[`${x},${y}`] = true
+    }
+
+    return result
+  }
+
   setShowRegions(show: boolean): void {
     this.hexes.map((hexComponent) => {
       if (hexComponent instanceof HexComponent) {
@@ -173,9 +185,9 @@ export class BoardComponent implements Component<Board> {
     })
   }
 
-  set(board: Board): boolean {
+  set(board: Board, splitSelection: HexPos[] = []): boolean {
     // Parse board data
-    const { faces, hexMap, edgeMap } = this.parseBoardData(board)
+    const { faces, hexMap, edgeMap } = this.parseBoardData(board, splitSelection)
 
     // Calculate dimensions with fixed base hex size only once on first call
     let justInitialized = false
@@ -224,6 +236,14 @@ export class BoardComponent implements Component<Board> {
     const hex = this.hexes.getElement(`${x},${y}`)
     if (hex instanceof HexComponent) {
       hex.handleChooseHexQuestion(question)
+    }
+  }
+
+  handleChoosePieceQuestion(location: HexPos, question: Question<Input>): void {
+    const [x, y] = location
+    const hex = this.hexes.getElement(`${x},${y}`)
+    if (hex instanceof HexComponent) {
+      hex.handleChoosePieceQuestion(question)
     }
   }
 
