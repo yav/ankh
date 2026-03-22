@@ -106,24 +106,18 @@ function uiSetQuestion (q: string) {
 
 // Various things that can be used to answer the question.
 function uiQuestion (q: Question<Input>) {
-  function choice(lab: string, onClick?: () => void) {
-    const dom = uiFromTemplate("template-btn")
-    dom.textContent = lab
-    dom.title = q.chHelp
-
-    if (onClick) {
-      dom.addEventListener("click", onClick)
-    }
-
-    // Add button to buttons container
-    gui.buttonsContainer.appendChild(dom)
-    gui.questionsContainer.push(dom)
-    registerQuestionCleanup(() => dom.remove())
-  }
-
   switch (q.chChoice.tag) {
     case "TextQuestion":
-      choice(q.chChoice.contents, () => respondToQuestion(q))
+      {
+        const dom = uiFromTemplate("template-btn")
+        dom.textContent = q.chChoice.contents
+        dom.title = q.chHelp
+        dom.addEventListener("click", () => respondToQuestion(q))
+
+        gui.buttonsContainer.appendChild(dom)
+        gui.questionsContainer.push(dom)
+        registerQuestionCleanup(() => dom.remove())
+      }
       break
 
     case "ChooseAction":
