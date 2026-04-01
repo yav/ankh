@@ -8,6 +8,7 @@ export type PlayerId = string
 // This mirrors App.Input and its default Aeson encoding.
 export type Input =
   | { tag: "ChooseHex", contents: HexPos }
+  | { tag: "ChooseEdge", contents: EdgePos }
   | { tag: "ChoosePiece", contents: HexPos }
   | { tag: "ChooseAction", contents: Action }
   | { tag: "TextQuestion", contents: string }
@@ -81,10 +82,20 @@ export type ActionAmount = {
 
 export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion"
 
+export type SplitSelectionState = {
+  edges: EdgePos[],
+  invalid: boolean
+}
+
+export const emptySplitSelectionState: SplitSelectionState = {
+  edges: [],
+  invalid: false
+}
+
 // State view of the game
 export type StateView = {
   board: Board,
   players: [PlayerId, PlayerState][],
   actions: [Action, ActionAmount][],
-  splitSelection: HexPos[]
+  splitSelection: SplitSelectionState
 }

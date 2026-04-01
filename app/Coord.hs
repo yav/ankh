@@ -162,6 +162,16 @@ mkELoc face (Dir dn) =
 elocDirected :: ELoc -> Bool -> DELoc
 elocDirected edge reversed = DELoc edge reversed
 
+-- | Orient this edge so that it starts at the given vertex.
+elocDirectedFrom :: ELoc -> VLoc -> Maybe DELoc
+elocDirectedFrom edge vertex
+  | delocStartVertex forward == vertex = Just forward
+  | delocStartVertex backward == vertex = Just backward
+  | otherwise = Nothing
+  where
+    forward = elocDirected edge False
+    backward = elocDirected edge True
+
 -- | Returns the two faces touching this edge.
 elocFaces :: ELoc -> [FLoc]
 elocFaces (ELoc face n) =
@@ -172,6 +182,18 @@ elocVertices :: ELoc -> [VLoc]
 elocVertices (ELoc face n) = [flocVertex face dir, flocVertex face (dirClockwise dir 1)]
   where
     dir = Dir n
+
+-- | Returns the other vertex on this edge, if the given vertex lies on it.
+elocOtherVertex :: ELoc -> VLoc -> Maybe VLoc
+elocOtherVertex edge vertex =
+  case filter (/= vertex) (elocVertices edge) of
+    [otherVertex] -> Just otherVertex
+    _ -> Nothing
+
+-- | True when both faces adjacent to the edge belong to the given region.
+isInteriorEdge :: Set FLoc -> ELoc -> Bool
+isInteriorEdge region edge =
+  all (`Set.member` region) (elocFaces edge)
 
 instance JS.ToJSON ELoc where
   toJSON (ELoc (FLoc x y) n) = JS.toJSON [x, y, n]
@@ -212,31 +234,31 @@ delocStartVertex :: DELoc -> VLoc
 delocStartVertex (DELoc (ELoc f n) rev) = mkVLoc f d
   where
     dd = if rev then 1 else 0
-    d = Dir (n + dd)
+    d = mkDir (n + dd)
 
 -- | Returns the vertex where this directed edge ends.
 delocEndVertex :: DELoc -> VLoc
 delocEndVertex (DELoc (ELoc f n) rev) = mkVLoc f d
   where
     dd = if rev then 0 else 1
-    d = Dir (n + dd)
+    d = mkDir (n + dd)
 
 -- | Returns the face directly in front of this directed edge.
 delocForwardFace :: DELoc -> FLoc
-delocForwardFace (DELoc (ELoc f n) rev) = flocAdvance f (Dir (n + d)) 1
+delocForwardFace (DELoc (ELoc f n) rev) = flocAdvance f (mkDir (n + d)) 1
   where
     d = if rev then -1 else 1
 
 -- | Returns the next directed edge when turning left.
 delocNextEdgeLeft :: DELoc -> DELoc
-delocNextEdgeLeft deloc@(DELoc (ELoc _ n) rev) = flocDirectedEdge ff (Dir (n + d)) True
+delocNextEdgeLeft deloc@(DELoc (ELoc _ n) rev) = flocDirectedEdge ff (mkDir (n + d)) True
   where
     d = if rev then 2 else -1
     ff = delocForwardFace deloc
 
 -- | Returns the next directed edge when turning right.
 delocNextEdgeRight :: DELoc -> DELoc
-delocNextEdgeRight deloc@(DELoc (ELoc _ n) rev) = flocDirectedEdge ff (Dir (n + d)) False
+delocNextEdgeRight deloc@(DELoc (ELoc _ n) rev) = flocDirectedEdge ff (mkDir (n + d)) False
   where
     d = if rev then 1 else -2
     ff = delocForwardFace deloc
@@ -275,6 +297,11 @@ vlocFaces :: VLoc -> [FLoc]
 vlocFaces (VLoc f n) = [f, flocAdvance f (dirCounterClockwise dir 1) 1, flocAdvance f dir 1]
   where
     dir = Dir n
+
+-- | True when the vertex touches at least one face outside the given region.
+isBoundaryVertex :: Set FLoc -> VLoc -> Bool
+isBoundaryVertex region vertex =
+  any (not . (`Set.member` region)) (vlocFaces vertex)
 
 -- | Returns the three edges meeting at this vertex.
 vlocEdges :: VLoc -> [ELoc]

@@ -1,19 +1,39 @@
 module App.State where
 
 import KOI.Basics
+import Data.Aeson qualified as JS
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import App.ActionType
 import App.Board
-import Coord (FLoc)
+import Coord (ELoc, FLoc)
 import App.Piece (Piece(..), PlayerPieceType(..))
 import App.PlayerState
+
+data SplitSelectionState = SplitSelectionState
+  { splitSelectionEdges :: Set.Set ELoc
+  , splitSelectionInvalid :: Bool
+  }
+  deriving (Read, Show)
+
+instance JS.ToJSON SplitSelectionState where
+  toJSON splitState = JS.object
+    [ "edges" JS..= Set.toList (splitSelectionEdges splitState)
+    , "invalid" JS..= splitSelectionInvalid splitState
+    ]
+
+emptySplitSelectionState :: SplitSelectionState
+emptySplitSelectionState =
+  SplitSelectionState
+    { splitSelectionEdges = Set.empty
+    , splitSelectionInvalid = False
+    }
 
 data State = State
   { stateBoard   :: Board
   , statePlayers :: Map.Map PlayerId PlayerState
   , stateActions :: Map.Map Action ActionAmount
-  , stateSplitSelection :: Set.Set FLoc
+  , stateSplitSelection :: SplitSelectionState
   }
   deriving (Read, Show)
 
@@ -40,8 +60,17 @@ summonSoldier pid loc st =
     board = stateBoard st
     board1 = board { boardHexes = Map.adjust (addPieces [PlayerPiece pid Soldier]) loc (boardHexes board) }
 
-setSplitSelection :: Set.Set FLoc -> State -> State
-setSplitSelection selected st = st { stateSplitSelection = selected }
+setSplitSelection :: Set.Set ELoc -> State -> State
+setSplitSelection selected st =
+  st { stateSplitSelection = splitState { splitSelectionEdges = selected } }
+  where
+    splitState = stateSplitSelection st
+
+setSplitSelectionInvalid :: Bool -> State -> State
+setSplitSelectionInvalid isInvalid st =
+  st { stateSplitSelection = splitState { splitSelectionInvalid = isInvalid } }
+  where
+    splitState = stateSplitSelection st
 
 clearSplitSelection :: State -> State
-clearSplitSelection = setSplitSelection Set.empty
+clearSplitSelection st = st { stateSplitSelection = emptySplitSelectionState }

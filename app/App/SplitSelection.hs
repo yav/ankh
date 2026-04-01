@@ -2,31 +2,29 @@ module App.SplitSelection
   ( doSpliltRegion
   ) where
 
-import Data.List (foldl')
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text qualified as T
 
 import KOI.Basics (PlayerId)
-import Coord (FLoc)
+import Coord (DELoc, ELoc, FLoc)
 import Coord qualified
 
 import App.Board
   ( Board(..)
   , RegionId
-  , borderHexagons
-  , subregionEdges
   )
 import App.Input (Input(..))
 import App.KOI
 import App.State (State(..))
 import qualified App.State as State
 
--- | Ask the player to select a connected subregion for splitting.
--- The selected subregion must remain connected by construction, and can end
--- only when it has at least 6 hexes and no more than 6 separating edges.
-doSpliltRegion :: PlayerId -> Interact (Maybe (RegionId, Set FLoc))
+-- | Ask the player to select a separator path inside a region.
+-- The path must start on the region border, stay inside the region, and reach
+-- the opposite border within at most 6 edges. The split is valid only when it
+-- divides the region into two subregions of size at least 6.
+doSpliltRegion :: PlayerId -> Interact (Maybe (RegionId, Set ELoc))
 doSpliltRegion pid =
   do
     board <- getsState stateBoard
@@ -37,9 +35,9 @@ doSpliltRegion pid =
           ]
         startInfo =
           Map.fromList
-            [ (loc, (rid, wholeRegion))
+            [ (edge, (rid, wholeRegion))
             | (rid, wholeRegion) <- eligibleRegions
-            , loc <- Set.toList (borderHexagons wholeRegion)
+            , edge <- Set.toList (regionStartEdges wholeRegion)
             ]
         startCandidates = Map.keys startInfo
     case startCandidates of
@@ -50,111 +48,149 @@ doSpliltRegion pid =
     chooseStart startInfo startCandidates =
       do
         startChoice <-
-          choose pid (questionFor pid "Select the starting hex for split")
-            [ (ChooseHex loc, T.pack (show loc))
-            | loc <- startCandidates
+          choose pid (questionFor pid "Select the starting edge for split")
+            [ (ChooseEdge edge, T.pack (show edge))
+            | edge <- startCandidates
             ]
         case startChoice of
-          ChooseHex start ->
+          ChooseEdge start ->
             case Map.lookup start startInfo of
               Just (rid, wholeRegion) ->
-                do
-                  let (memo, viable) = splitHasViableFutureWithMemo wholeRegion Map.empty (Set.singleton start)
-                  if viable
-                    then
-                      do
-                        selected <- splitLoop pid wholeRegion memo (Set.singleton start)
-                        pure (Just (rid, selected))
-                    else
-                      chooseStart startInfo (filter (/= start) startCandidates)
+                case startPath wholeRegion start of
+                  Nothing -> chooseStart startInfo (filter (/= start) startCandidates)
+                  Just path ->
+                    do
+                      selected <- splitLoop pid wholeRegion path
+                      pure (Just (rid, selected))
               Nothing -> chooseStart startInfo startCandidates
           _ -> pure Nothing
 
-splitLoop :: PlayerId -> Set FLoc -> SplitMemo -> Set FLoc -> Interact (Set FLoc)
-splitLoop pid wholeRegion memo selected =
+splitLoop :: PlayerId -> Set FLoc -> SplitPath -> Interact (Set ELoc)
+splitLoop pid wholeRegion path =
   do
     st <- getState
-    update (State.setSplitSelection selected st)
+    update (State.setSplitSelectionInvalid False (State.setSplitSelection (pathEdges path) st))
 
-    let (memo1, candidateHexes) = selectableNext wholeRegion memo selected
-        canEnd = endSplitValid wholeRegion selected
+    let candidateEdges = nextPathEdges wholeRegion path
         choices =
-          [ (ChooseHex loc, T.pack (show loc))
-          | loc <- Set.toList candidateHexes
+          [ (ChooseEdge edge, T.pack (show edge))
+          | edge <- candidateEdges
           ]
-        choicesWithEnd =
-          if canEnd
-            then (TextQuestion "End Split", "Finish selecting this split") : choices
-            else choices
-    case choicesWithEnd of
-      [] -> pure selected
+    case choices of
+      [] -> finishSplit pid wholeRegion path
       _ -> do
-        choice <- choose pid (questionFor pid "Select hexagons for the new subregion") choicesWithEnd
+        choice <- choose pid (questionFor pid "Select edges for the split") choices
         case choice of
-          ChooseHex loc
-            | Set.member loc candidateHexes -> splitLoop pid wholeRegion memo1 (Set.insert loc selected)
-          TextQuestion "End Split"
-            | canEnd -> pure selected
-          _ -> splitLoop pid wholeRegion memo1 selected
+          ChooseEdge edge
+            | edge `elem` candidateEdges ->
+                case extendPath wholeRegion path edge of
+                  Just path1 -> splitLoop pid wholeRegion path1
+                  Nothing -> splitLoop pid wholeRegion path
+          _ -> splitLoop pid wholeRegion path
 
--- | The player may end splitting once the new subregion is big enough and
--- its separating boundary is small enough.
-endSplitValid :: Set FLoc -> Set FLoc -> Bool
-endSplitValid wholeRegion selected =
-  Set.size selected >= 6 && Set.size (subregionEdges wholeRegion selected) <= 6
+finishSplit :: PlayerId -> Set FLoc -> SplitPath -> Interact (Set ELoc)
+finishSplit pid wholeRegion path =
+  if splitValid wholeRegion (pathEdges path)
+    then confirmSplit pid path
+    else invalidSplit pid path
 
--- | Remaining hexes outside the currently selected subregion.
-remainingHexes :: Set FLoc -> Set FLoc -> Int
-remainingHexes wholeRegion selected = Set.size wholeRegion - Set.size selected
+confirmSplit :: PlayerId -> SplitPath -> Interact (Set ELoc)
+confirmSplit pid path =
+  do
+    st <- getState
+    update (State.setSplitSelectionInvalid False (State.setSplitSelection (pathEdges path) st))
+    choice <-
+      choose pid (questionFor pid "Confirm this split")
+        [ (TextQuestion "Split Region", "Apply this split") ]
+    case choice of
+      TextQuestion "Split Region" -> pure (pathEdges path)
+      _ -> confirmSplit pid path
 
--- | Immediate adjacent growth candidates that stay within the original region.
-rawAdjacentCandidates :: Set FLoc -> Set FLoc -> Set FLoc
-rawAdjacentCandidates wholeRegion selected =
+invalidSplit :: PlayerId -> SplitPath -> Interact (Set ELoc)
+invalidSplit pid path =
+  do
+    st <- getState
+    update (State.setSplitSelectionInvalid True (State.setSplitSelection (pathEdges path) st))
+    askInputs (questionFor pid "Invalid split. Use Undo to try again.") []
+
+data SplitPath = SplitPath
+  { pathEdges :: Set ELoc
+  , pathCurrent :: DELoc
+  }
+
+splitValid :: Set FLoc -> Set ELoc -> Bool
+splitValid wholeRegion selectedEdges =
+  case Map.elems (Coord.findRegions wholeRegion selectedEdges) of
+    [leftRegion, rightRegion] ->
+      Set.size leftRegion >= 6 && Set.size rightRegion >= 6
+    _ -> False
+
+startPath :: Set FLoc -> ELoc -> Maybe SplitPath
+startPath wholeRegion edge
+  | not (Coord.isInteriorEdge wholeRegion edge) = Nothing
+  | not (any (Coord.isBoundaryVertex wholeRegion) edgeVertices) = Nothing
+  | otherwise = do
+      startVertex <-
+        case filter (Coord.isBoundaryVertex wholeRegion) edgeVertices of
+          boundaryVertex : _ -> Just boundaryVertex
+          [] -> Nothing
+      current <- Coord.elocDirectedFrom edge startVertex
+      pure
+        SplitPath
+          { pathEdges = Set.singleton edge
+          , pathCurrent = current
+          }
+  where
+    edgeVertices = Coord.elocVertices edge
+
+extendPath :: Set FLoc -> SplitPath -> ELoc -> Maybe SplitPath
+extendPath wholeRegion path edge =
+  case Map.lookup edge nextByEdge of
+    Nothing -> Nothing
+    Just nextDirectedEdge ->
+      Just
+        SplitPath
+          { pathEdges = Set.insert edge (pathEdges path)
+          , pathCurrent = nextDirectedEdge
+          }
+  where
+    nextByEdge =
+      Map.fromList
+        [ (Coord.delocEdgeLoc directedEdge, directedEdge)
+        | directedEdge <- nextDirectedEdges wholeRegion path
+        ]
+
+nextPathEdges :: Set FLoc -> SplitPath -> [ELoc]
+nextPathEdges wholeRegion = map Coord.delocEdgeLoc . nextDirectedEdges wholeRegion
+
+nextDirectedEdges :: Set FLoc -> SplitPath -> [DELoc]
+nextDirectedEdges wholeRegion path
+  | Set.size (pathEdges path) >= 6 = []
+  | Coord.isBoundaryVertex wholeRegion (Coord.delocEndVertex current) = []
+  | otherwise =
+      [ directedEdge
+      | directedEdge <- [Coord.delocNextEdgeLeft current, Coord.delocNextEdgeRight current]
+      , let edge = Coord.delocEdgeLoc directedEdge
+      , Coord.isInteriorEdge wholeRegion edge
+      , not (edge `Set.member` pathEdges path)
+      ]
+  where
+    current = pathCurrent path
+
+regionStartEdges :: Set FLoc -> Set ELoc
+regionStartEdges wholeRegion =
   Set.fromList
-    [ neighbor
-    | loc <- Set.toList selected
-    , dir <- Coord.allDirections
-    , let neighbor = Coord.flocAdvance loc dir 1
-    , Set.member neighbor wholeRegion
-    , not (Set.member neighbor selected)
+    [ edge
+    | edge <- regionInteriorEdges wholeRegion
+    , any (Coord.isBoundaryVertex wholeRegion) (Coord.elocVertices edge)
     ]
 
--- | Next selectable hexagons, excluding moves that would force an invalid dead end.
-selectableNext :: Set FLoc -> SplitMemo -> Set FLoc -> (SplitMemo, Set FLoc)
-selectableNext wholeRegion memo selected
-  | remainingHexes wholeRegion selected <= 6 = (memo, Set.empty)
-  | otherwise =
-      foldl'
-        step
-        (memo, Set.empty)
-        (Set.toList (rawAdjacentCandidates wholeRegion selected))
-  where
-    step (m, acc) loc =
-      let (m1, ok) = splitHasViableFutureWithMemo wholeRegion m (Set.insert loc selected)
-      in if ok then (m1, Set.insert loc acc) else (m1, acc)
-
-type SplitMemo = Map.Map (Set FLoc) Bool
-
--- | True iff there exists a sequence of future picks leading to a valid end state.
--- This prevents offering moves that eventually force a stuck invalid state.
-splitHasViableFutureWithMemo :: Set FLoc -> SplitMemo -> Set FLoc -> (SplitMemo, Bool)
-splitHasViableFutureWithMemo wholeRegion memo0 selected0 = go memo0 selected0
-  where
-    go :: SplitMemo -> Set FLoc -> (SplitMemo, Bool)
-    go memo selected =
-      case Map.lookup selected memo of
-        Just cached -> (memo, cached)
-        Nothing ->
-          let (memo1, result)
-                | endSplitValid wholeRegion selected = (memo, True)
-                | remainingHexes wholeRegion selected <= 6 = (memo, False)
-                | otherwise =
-                    let nexts = Set.toList (rawAdjacentCandidates wholeRegion selected)
-                    in tryNext memo nexts
-              memo2 = Map.insert selected result memo1
-          in (memo2, result)
-      where
-        tryNext m [] = (m, False)
-        tryNext m (loc : more) =
-          let (m1, ok) = go m (Set.insert loc selected)
-          in if ok then (m1, True) else tryNext m1 more
+regionInteriorEdges :: Set FLoc -> [ELoc]
+regionInteriorEdges wholeRegion =
+  Set.toList . Set.fromList $
+    [ Coord.flocEdge loc dir
+    | loc <- Set.toList wholeRegion
+    , dir <- Coord.allDirections
+    , let edge = Coord.flocEdge loc dir
+    , Coord.isInteriorEdge wholeRegion edge
+    ]

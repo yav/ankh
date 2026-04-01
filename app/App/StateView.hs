@@ -3,7 +3,6 @@ module App.StateView where
 import KOI.Basics
 import Data.Aeson qualified as JS
 import Data.Map qualified as Map
-import Data.Set qualified as Set
 import App.ActionType ()
 import App.State
 
@@ -17,5 +16,5 @@ instance JS.ToJSON StateView where
     [ "board" JS..= stateBoard st
     , "players" JS..= Map.toList (statePlayers st)
     , "actions" JS..= Map.toList (stateActions st)
-    , "splitSelection" JS..= Set.toList (stateSplitSelection st)
+    , "splitSelection" JS..= stateSplitSelection st
     ]

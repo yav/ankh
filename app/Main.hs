@@ -10,7 +10,6 @@ import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS (parseEither)
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import KOI.Options (optionString, Options, Option)
 import Data.Text (pack)
 
@@ -54,8 +53,8 @@ main = startApp App
                 })
             | p <- ps
             ]
-            , stateActions = initActionSelector (length ps)
-            , stateSplitSelection = Set.empty
+          , stateActions = initActionSelector (length ps)
+          , stateSplitSelection = emptySplitSelectionState
         }
   , appStart = gameLoop
   }

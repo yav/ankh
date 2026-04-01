@@ -133,6 +133,10 @@ function uiQuestion (q: Question<Input>) {
       gui.boardComponent.handleChooseHexQuestion(q.chChoice.contents, q)
       break
 
+    case "ChooseEdge":
+      gui.boardComponent.handleChooseEdgeQuestion(q.chChoice.contents, q)
+      break
+
     case "ChoosePiece":
       gui.boardComponent.handleChoosePieceQuestion(q.chChoice.contents, q)
       break

@@ -10,8 +10,10 @@ import type {
   Board,
   Hex,
   EdgeType,
-  Input
+  Input,
+  SplitSelectionState
 } from "./protocol.ts"
+import { emptySplitSelectionState } from "./protocol.ts"
 import {
   Component,
   MapComponent
@@ -19,6 +21,8 @@ import {
 import { HexComponent } from "./hexComponent.ts"
 import type { HexDisplayData } from "./hexComponent.ts"
 import { EdgeComponent } from "./edgeComponent.ts"
+import type { EdgeDisplayData } from "./edgeComponent.ts"
+import { registerQuestionCleanup } from "./questionActions"
 
 // Re-export for backwards compatibility
 export type { Terrain, HexPos, EdgePos, Board }
@@ -60,7 +64,7 @@ function calculateBoundingBox(
 export class BoardComponent implements Component<Board> {
   private grid: Grid
   private hexes: MapComponent<HexDisplayData>
-  private edges: MapComponent<EdgeType>
+  private edges: MapComponent<EdgeDisplayData>
   private offsetX: number
   private offsetY: number
   private initialized: boolean
@@ -90,7 +94,7 @@ export class BoardComponent implements Component<Board> {
       return new HexComponent(this.grid, key, this.offsetX, this.offsetY, showRegions)
     })
 
-    this.edges = new MapComponent<EdgeType>((key) => {
+    this.edges = new MapComponent<EdgeDisplayData>((key) => {
       return new EdgeComponent(this.grid, key, this.offsetX, this.offsetY)
     })
   }
@@ -118,11 +122,11 @@ export class BoardComponent implements Component<Board> {
   /**
    * Parses the board JSON into maps for rendering
    */
-  private parseBoardData(board: Board, splitSelection: HexPos[]) {
+  private parseBoardData(board: Board, splitSelection: SplitSelectionState) {
     const faces: FLoc[] = []
     const hexMap: { [key: string]: HexDisplayData } = {}
     const regionByHex = this.buildRegionIndex(board.regions)
-    const splitSelectionIndex = this.buildSelectionIndex(splitSelection)
+    const splitSelectionIndex = this.buildEdgeSelectionIndex(splitSelection.edges)
 
     for (const hexWithLoc of board.hexes) {
       const [x, y] = hexWithLoc.location
@@ -141,11 +145,24 @@ export class BoardComponent implements Component<Board> {
       }
     }
 
-    const edgeMap: { [key: string]: EdgeType } = {}
+    const edgeMap: { [key: string]: EdgeDisplayData } = {}
     for (const edge of board.edges) {
       const [x, y, dir] = edge.location
       const key = `${x},${y},${dir}`
-      edgeMap[key] = edge.type
+      edgeMap[key] = {
+        edgeType: edge.type,
+        splitSelected: splitSelectionIndex[key] ?? false,
+        splitInvalid: splitSelection.invalid && (splitSelectionIndex[key] ?? false)
+      }
+    }
+
+    for (const [x, y, dir] of splitSelection.edges) {
+      const key = `${x},${y},${dir}`
+      edgeMap[key] ??= {
+        edgeType: null,
+        splitSelected: true,
+        splitInvalid: splitSelection.invalid
+      }
     }
 
     return {
@@ -167,11 +184,11 @@ export class BoardComponent implements Component<Board> {
     return result
   }
 
-  private buildSelectionIndex(selection: HexPos[]): { [key: string]: boolean } {
+  private buildEdgeSelectionIndex(selection: EdgePos[]): { [key: string]: boolean } {
     const result: { [key: string]: boolean } = {}
 
-    for (const [x, y] of selection) {
-      result[`${x},${y}`] = true
+    for (const [x, y, dir] of selection) {
+      result[`${x},${y},${dir}`] = true
     }
 
     return result
@@ -185,7 +202,10 @@ export class BoardComponent implements Component<Board> {
     })
   }
 
-  set(board: Board, splitSelection: HexPos[] = []): boolean {
+  set(
+    board: Board,
+    splitSelection: SplitSelectionState = emptySplitSelectionState
+  ): boolean {
     // Parse board data
     const { faces, hexMap, edgeMap } = this.parseBoardData(board, splitSelection)
 
@@ -245,6 +265,20 @@ export class BoardComponent implements Component<Board> {
     if (hex instanceof HexComponent) {
       hex.handleChoosePieceQuestion(question)
     }
+  }
+
+  handleChooseEdgeQuestion(location: EdgePos, question: Question<Input>): void {
+    const [x, y, dir] = location
+    const edge = this.edges.getElement(`${x},${y},${dir}`)
+    if (edge instanceof EdgeComponent) {
+      edge.handleChooseEdgeQuestion(question)
+      return
+    }
+
+    const tempEdge = new EdgeComponent(this.grid, `${x},${y},${dir}`, this.offsetX, this.offsetY)
+    tempEdge.set({ edgeType: null, splitSelected: false, splitInvalid: false })
+    tempEdge.handleChooseEdgeQuestion(question)
+    registerQuestionCleanup(() => tempEdge.destroy())
   }
 
   destroy(): void {

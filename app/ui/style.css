@@ -388,6 +388,10 @@ html, body {
 }
 
 /* Edge types */
+.edge-shape {
+  z-index: 2;
+}
+
 .edge-water {
   background:
     /* Water grain texture */
@@ -427,6 +431,34 @@ html, body {
 
 .edge-camels {
   background-color: #8B4513;  /* Brown for camel edges */
+}
+
+.edge-question-choice {
+  cursor: pointer;
+  background: linear-gradient(135deg, #CA6F1E 0%, #873600 100%);
+  box-shadow:
+    0 0 0 2px rgba(44, 62, 80, 0.45),
+    0 0 10px rgba(175, 96, 26, 0.4),
+    0 2px 6px rgba(20, 29, 38, 0.28);
+  filter: brightness(0.95);
+}
+
+.edge-question-choice:hover {
+  filter: brightness(1.08);
+}
+
+.edge-split-selected {
+  background: linear-gradient(135deg, #F4D03F 0%, #E67E22 100%);
+  box-shadow:
+    0 0 0 2px rgba(44, 62, 80, 0.45),
+    0 0 10px rgba(244, 208, 63, 0.45);
+}
+
+.edge-split-invalid {
+  background: linear-gradient(135deg, #E74C3C 0%, #922B21 100%);
+  box-shadow:
+    0 0 0 2px rgba(44, 62, 80, 0.45),
+    0 0 12px rgba(231, 76, 60, 0.45);
 }
 
 /* Piece styling */

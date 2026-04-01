@@ -18,14 +18,13 @@ import App.Board
   , computeFollowersGain
   , movePiece
   , playerPieceLocations
-  , subregionEdges
   , validMoveTargets
   , validSummonTargets
   )
 import App.Input (Input(..))
 import App.PlayerState (PlayerState(..))
 import App.SplitSelection qualified as SplitSelection
-import Coord (FLoc)
+import Coord (ELoc, FLoc, findRegions)
 
 
 doAction :: PlayerId -> Interact ()
@@ -152,34 +151,50 @@ doSpliltRegion pid =
 
     case split of
       Nothing -> pure ()
-      Just (rid, selected) -> do
-        updateBoard (applySelectedSplit rid selected)
+      Just (rid, selectedEdges) -> do
+        updateBoard (applySelectedSplit rid selectedEdges)
         pure ()
 
 -- | Apply a chosen split to the board by replacing the original region with the
--- remainder, creating a new region for the selected cells, and adding
--- separating edges as camel borders.
-applySelectedSplit :: RegionId -> Set FLoc -> Board -> Board
-applySelectedSplit oldRegionId selected board =
+-- two resulting subregions and adding the separating edges as camel borders.
+applySelectedSplit :: RegionId -> Set ELoc -> Board -> Board
+applySelectedSplit oldRegionId selectedEdges board =
   case Map.lookup oldRegionId (boardRegions board) of
-    Nothing -> board
+    Nothing ->
+      error
+        ( "applySelectedSplit: selected region "
+        ++ show oldRegionId
+        ++ " no longer exists"
+        )
     Just wholeRegion ->
-      board
-        { boardRegions = regions2
-        , boardEdges = edges2
-        , boardNextRegionId = newRegionId + 1
-        }
-      where
-        selectedEdges = subregionEdges wholeRegion selected
-        remainingRegion = Set.difference wholeRegion selected
-        regions1 =
-          if Set.null remainingRegion
-            then Map.delete oldRegionId (boardRegions board)
-            else Map.insert oldRegionId remainingRegion (boardRegions board)
-        newRegionId = boardNextRegionId board
-        regions2 = Map.insert newRegionId selected regions1
-        edges2 =
-          foldl'
-            (\acc edge -> Map.insert edge CamelsEdge acc)
-            (boardEdges board)
-            (Set.toList selectedEdges)
+      case splitRegionByEdges wholeRegion selectedEdges of
+        Nothing ->
+          error
+            ( "applySelectedSplit: selected edges did not split region "
+            ++ show oldRegionId
+            ++ " into exactly two subregions: "
+            ++ show (Set.toList selectedEdges)
+            )
+        Just (regionA, regionB) ->
+          board
+            { boardRegions = regions2
+            , boardEdges = edges2
+            , boardNextRegionId = newRegionId + 1
+            }
+          where
+            newRegionId = boardNextRegionId board
+            regions1 = Map.delete oldRegionId (boardRegions board)
+            regions2 =
+              Map.insert newRegionId regionB
+                (Map.insert oldRegionId regionA regions1)
+            edges2 =
+              foldl'
+                (\acc edge -> Map.insert edge CamelsEdge acc)
+                (boardEdges board)
+                (Set.toList selectedEdges)
+
+splitRegionByEdges :: Set FLoc -> Set ELoc -> Maybe (Set FLoc, Set FLoc)
+splitRegionByEdges wholeRegion separatorEdges =
+  case Map.elems (findRegions wholeRegion separatorEdges) of
+    [regionA, regionB] -> Just (regionA, regionB)
+    _ -> Nothing
