@@ -82,6 +82,34 @@ export type ActionAmount = {
 
 export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion"
 
+// Powers (matches App.Powers)
+export type Power =
+  // Level 1
+  | "commanding"
+  | "inspiring"
+  | "omnipresent"
+  | "revered"
+  // Level 2
+  | "resplendent"
+  | "obeliskAttuned"
+  | "templeAttuned"
+  | "pyramidAttuned"
+  // Level 3
+  | "glorious"
+  | "magnanimous"
+  | "bountiful"
+  | "worshipful"
+
+// Battle Cards (matches App.Cards)
+export type Card =
+  | "plagueOfLocusts"
+  | "buildMonument"
+  | "chariots"
+  | "cycleOfMaat"
+  | "drought"
+  | "flood"
+  | "miracle"
+
 export type SplitSelectionState = {
   edges: EdgePos[],
   invalid: boolean

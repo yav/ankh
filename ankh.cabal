@@ -26,6 +26,8 @@ executable ankh
                       App.Board,
                       App.Piece,
                       App.PlayerState,
+                      App.Powers,
+                      App.Cards,
                       App.ActionType,
                       App.Action,
                       App.SplitSelection,
