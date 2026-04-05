@@ -2,12 +2,19 @@ module App.PlayerState where
 
 import Data.Aeson(ToJSON(..), (.=))
 import Data.Aeson qualified as JS
+import Data.Set (Set)
+
+import App.Powers (Power)
+import App.Cards (Card)
 
 data PlayerState = PlayerState {
   playerFollowers :: !Int,
   playerSoldiers  :: !Int,
   playerPoints    :: !Int,
-  playerActions   :: !Int   -- ^ 1 or 2, depending on if merged
+  playerActions   :: !Int,   -- ^ 1 or 2, depending on if merged
+  playerPowers    :: !(Set Power),
+  playerHand      :: ![Card],
+  playerPlayed    :: ![Card]
 }
   deriving (Read, Show)
 
@@ -25,4 +32,7 @@ instance ToJSON PlayerState where
     , "soldiers"  .= playerSoldiers ps
     , "points"    .= playerPoints ps
     , "actions"   .= playerActions ps
+    , "powers"    .= playerPowers ps
+    , "hand"      .= playerHand ps
+    , "played"    .= playerPlayed ps
     ]

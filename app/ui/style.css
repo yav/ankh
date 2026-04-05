@@ -601,3 +601,90 @@ html, body {
   z-index: 100;
   pointer-events: none;
 }
+
+/* Player component */
+.player-card {
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.player-stats {
+  margin-bottom: 6px;
+}
+
+.player-id {
+  font-weight: bold;
+  margin-right: 12px;
+}
+
+.stat-value {
+  margin-right: 12px;
+}
+
+.stat-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.player-powers {
+  margin-bottom: 4px;
+}
+
+.powers-label {
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.power-badge {
+  margin-right: 8px;
+  padding: 2px 6px;
+  background-color: #e0e0e0;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.card-badge {
+  margin-right: 8px;
+  padding: 2px 6px;
+  background-color: #d0e0f0;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.card-toggle-line {
+  margin-bottom: 4px;
+}
+
+.card-toggle-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  margin-right: 8px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  vertical-align: middle;
+}
+
+.card-toggle-icon:hover {
+  opacity: 0.8;
+}
+
+.card-toggle-icon.active {
+  opacity: 1;
+}
+
+.card-container {
+  margin-left: 32px;
+  margin-top: 4px;
+  display: none;
+}
+
+.card-container.visible {
+  display: block;
+}

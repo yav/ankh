@@ -6,10 +6,13 @@ import App.KOI
 import App.State
 import App.PlayerState
 import App.Board (parseBoard, countSoldiersOnBoard)
+import App.Cards (Card(..))
+import App.Powers (Power(..))
 import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS (parseEither)
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import KOI.Options (optionString, Options, Option)
 import Data.Text (pack)
 
@@ -50,6 +53,9 @@ main = startApp App
                 , playerSoldiers = 6 - Map.findWithDefault 0 p soldiersOnBoard
                 , playerPoints = 0
                 , playerActions = 2
+                , playerPowers = Set.fromList [Commanding, Inspiring]
+                , playerHand = [BuildMonument, Chariots, CycleOfMaat, Drought]
+                , playerPlayed = [PlagueOfLocusts, Flood, Miracle]
                 })
             | p <- ps
             ]
