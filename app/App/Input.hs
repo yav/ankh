@@ -12,4 +12,5 @@ data Input
   | ChoosePiece FLoc
   | ChooseAction Action
   | TextQuestion Text
+  | AskBid Int
   deriving (Read,Show,Eq,Ord,Generic,JS.ToJSON,JS.FromJSON)

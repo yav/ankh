@@ -26,7 +26,7 @@ type GameState = {
 let conn: Connection<Input>;
 let gui: GUI;
 
-const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion"]
+const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid"]
 
 function syncRegionsToggle(): void {
   const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
@@ -104,6 +104,50 @@ function uiSetQuestion (q: string) {
   gui.questionsContainer = []
 }
 
+// Handle AskBid question with slider and button
+function handleAskBidQuestion(maxBid: number, q: Question<Input>) {
+  const container = document.createElement("div")
+  container.className = "bid-container"
+
+  const slider = document.createElement("input")
+  slider.type = "range"
+  slider.min = "0"
+  slider.max = maxBid.toString()
+  slider.value = "0"
+  slider.className = "bid-slider"
+
+  const valueDisplay = document.createElement("span")
+  valueDisplay.className = "bid-value"
+  valueDisplay.textContent = "0"
+
+  slider.addEventListener("input", () => {
+    valueDisplay.textContent = slider.value
+  })
+
+  const button = uiFromTemplate("template-btn")
+  button.textContent = "Bid"
+  button.title = q.chHelp
+
+  button.addEventListener("click", () => {
+    const modifiedQuestion = {
+      ...q,
+      chChoice: {
+        tag: "AskBid" as const,
+        contents: parseInt(slider.value)
+      }
+    }
+    respondToQuestion(modifiedQuestion)
+  })
+
+  container.appendChild(slider)
+  container.appendChild(valueDisplay)
+  container.appendChild(button)
+
+  gui.buttonsContainer.appendChild(container)
+  gui.questionsContainer.push(container)
+  registerQuestionCleanup(() => container.remove())
+}
+
 // Various things that can be used to answer the question.
 function uiQuestion (q: Question<Input>) {
   switch (q.chChoice.tag) {
@@ -118,6 +162,10 @@ function uiQuestion (q: Question<Input>) {
         gui.questionsContainer.push(dom)
         registerQuestionCleanup(() => dom.remove())
       }
+      break
+
+    case "AskBid":
+      handleAskBidQuestion(q.chChoice.contents, q)
       break
 
     case "ChooseAction":

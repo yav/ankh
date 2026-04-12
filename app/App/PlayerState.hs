@@ -26,6 +26,10 @@ addFollowers :: Int -> PlayerState -> PlayerState
 addFollowers n playerState =
   playerState { playerFollowers = playerFollowers playerState + n }
 
+spendFollowers :: Int -> PlayerState -> PlayerState
+spendFollowers n playerState =
+  playerState { playerFollowers = playerFollowers playerState - n }
+
 instance ToJSON PlayerState where
   toJSON ps = JS.object
     [ "followers" .= playerFollowers ps

@@ -9,7 +9,7 @@ import Data.List (foldl')
 import KOI.Basics (PlayerId)
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
-import App.State (State(..), decrementAction, gainFollowers, summonSoldier)
+import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier)
 import qualified App.State as State
 import App.Board
   ( Board(..)
@@ -60,6 +60,7 @@ runAction pid act =
     GainFollowers -> doGainFollowers pid
     GainPower -> pure ()
     TestSplitRegion -> doSpliltRegion pid
+    TestBid -> doTestBid pid
 
 actionHelp :: State -> PlayerId -> Action -> T.Text
 actionHelp st pid act =
@@ -198,3 +199,24 @@ splitRegionByEdges wholeRegion separatorEdges =
   case Map.elems (findRegions wholeRegion separatorEdges) of
     [regionA, regionB] -> Just (regionA, regionB)
     _ -> Nothing
+
+doTestBid :: PlayerId -> Interact ()
+doTestBid pid =
+  do
+    st <- getState
+    case Map.lookup pid (statePlayers st) of
+      Just playerState -> do
+        let maxBid = playerFollowers playerState
+        bid <-
+          if maxBid == 0
+            then pure 0
+            else do
+              choice <-
+                choose pid (questionFor pid "How many followers do you want to bid?")
+                  [(AskBid maxBid, "Bid between 0 and " <> T.pack (show maxBid))]
+              case choice of
+                AskBid bid -> pure bid
+                _ -> pure 0
+        st' <- getState
+        update (loseFollowers pid bid st')
+      Nothing -> pure ()

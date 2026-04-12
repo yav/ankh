@@ -13,7 +13,7 @@ import KOI.Interact qualified as I
 
 import App.State(State, stateIsFinal)
 import App.StateView(StateView, getStateView)
-import App.Input(Input)
+import App.Input(Input(..))
 
 data KOI = KOI
 
@@ -33,3 +33,6 @@ instance Component KOI where
   playerView _     = getStateView
   playerUpdateView = playerView
   finalState _     = stateIsFinal
+
+  validInput _ (AskBid maxBid) (AskBid bid) = bid >= 0 && bid <= maxBid
+  validInput _ expected response = expected == response

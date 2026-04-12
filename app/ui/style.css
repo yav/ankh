@@ -688,3 +688,55 @@ html, body {
 .card-container.visible {
   display: block;
 }
+
+/* Bid slider container */
+.bid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #B8C4CC;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F4F7F8 100%);
+  box-shadow: 0 1px 3px rgba(44, 62, 80, 0.12);
+}
+
+.bid-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #BDC3C7 0%, #3498DB 100%);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.bid-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3498DB;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.bid-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3498DB;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.bid-value {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2C3E50;
+  padding: 4px 0;
+}

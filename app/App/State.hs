@@ -50,6 +50,10 @@ gainFollowers :: PlayerId -> Int -> State -> State
 gainFollowers pid n st =
   st { statePlayers = Map.adjust (addFollowers n) pid (statePlayers st) }
 
+loseFollowers :: PlayerId -> Int -> State -> State
+loseFollowers pid n st =
+  st { statePlayers = Map.adjust (spendFollowers n) pid (statePlayers st) }
+
 summonSoldier :: PlayerId -> FLoc -> State -> State
 summonSoldier pid loc st =
   st

@@ -12,6 +12,7 @@ export type Input =
   | { tag: "ChoosePiece", contents: HexPos }
   | { tag: "ChooseAction", contents: Action }
   | { tag: "TextQuestion", contents: string }
+  | { tag: "AskBid", contents: number }
 
 // Hexagonal coordinate system (FLoc in Haskell)
 // Serialized as [x, y] array
@@ -83,7 +84,7 @@ export type ActionAmount = {
   max: number
 }
 
-export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion"
+export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid"
 
 // Powers (matches App.Powers)
 export type Power =
