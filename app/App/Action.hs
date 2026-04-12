@@ -60,7 +60,7 @@ runAction pid act =
     GainFollowers -> doGainFollowers pid
     GainPower -> pure ()
     TestSplitRegion -> doSpliltRegion pid
-    TestBid -> doTestBid pid
+    TestBid -> doTestBid
 
 actionHelp :: State -> PlayerId -> Action -> T.Text
 actionHelp st pid act =
@@ -200,23 +200,28 @@ splitRegionByEdges wholeRegion separatorEdges =
     [regionA, regionB] -> Just (regionA, regionB)
     _ -> Nothing
 
-doTestBid :: PlayerId -> Interact ()
-doTestBid pid =
+doTestBid :: Interact ()
+doTestBid =
   do
     st <- getState
-    case Map.lookup pid (statePlayers st) of
-      Just playerState -> do
-        let maxBid = playerFollowers playerState
-        bid <-
-          if maxBid == 0
-            then pure 0
-            else do
-              choice <-
-                choose pid (questionFor pid "How many followers do you want to bid?")
-                  [(AskBid maxBid, "Bid between 0 and " <> T.pack (show maxBid))]
-              case choice of
-                AskBid bid -> pure bid
-                _ -> pure 0
-        st' <- getState
-        update (loseFollowers pid bid st')
-      Nothing -> pure ()
+    let playerChoices =
+          [ (p, if maxBid == 0
+                    then [(AskBid 0, "You have no followers")]
+                    else [(AskBid maxBid, "Bid between 0 and " <> T.pack (show maxBid))])
+          | (p, playerState) <- Map.toList (statePlayers st)
+          , let maxBid = playerFollowers playerState
+          ]
+
+    bids <- askInputsAll
+      (\responded notResponded ->
+        let x = length responded
+            y = x + length notResponded
+        in "Bidding (" <> T.pack (show x) <> "/" <> T.pack (show y) <> "): How many followers do you want to bid?")
+      playerChoices
+
+    st' <- getState
+    let processBid state (rpid, input) =
+          case input of
+            AskBid bid -> loseFollowers rpid bid state
+            _ -> state
+    update (foldl' processBid st' (Map.toList bids))
