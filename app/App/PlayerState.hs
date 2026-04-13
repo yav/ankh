@@ -30,6 +30,13 @@ spendFollowers :: Int -> PlayerState -> PlayerState
 spendFollowers n playerState =
   playerState { playerFollowers = playerFollowers playerState - n }
 
+playCard :: Card -> PlayerState -> PlayerState
+playCard card playerState =
+  playerState
+    { playerHand = filter (/= card) (playerHand playerState)
+    , playerPlayed = card : playerPlayed playerState
+    }
+
 instance ToJSON PlayerState where
   toJSON ps = JS.object
     [ "followers" .= playerFollowers ps

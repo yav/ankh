@@ -23,10 +23,10 @@ type GameState = {
   questions: [string, Question<Input>[]]
 }
 
-let conn: Connection<Input>;
+export let conn: Connection<Input>;
 let gui: GUI;
 
-const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid"]
+const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid", "testPlayCards"]
 
 function syncRegionsToggle(): void {
   const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
@@ -187,6 +187,16 @@ function uiQuestion (q: Question<Input>) {
 
     case "ChoosePiece":
       gui.boardComponent.handleChoosePieceQuestion(q.chChoice.contents, q)
+      break
+
+    case "ChooseCard":
+      {
+        const card = q.chChoice.contents
+        const playerComponents = gui.playersComponent.getElements()
+        for (const playerComponent of playerComponents) {
+          (playerComponent as PlayerComponent).handleChooseCardQuestion(card, q)
+        }
+      }
       break
   }
 }

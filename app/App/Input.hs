@@ -5,6 +5,7 @@ import Data.Aeson qualified as JS
 import Data.Text (Text)
 import Coord (ELoc, FLoc)
 import App.ActionType (Action)
+import App.Cards (Card)
 
 data Input
   = ChooseHex FLoc
@@ -13,4 +14,5 @@ data Input
   | ChooseAction Action
   | TextQuestion Text
   | AskBid Int
+  | ChooseCard Card
   deriving (Read,Show,Eq,Ord,Generic,JS.ToJSON,JS.FromJSON)

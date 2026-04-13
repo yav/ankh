@@ -1,11 +1,50 @@
 import { Component, Text, List } from "./common-js/combinators.ts"
-import type { PlayerId, PlayerState, Power, Card } from "./protocol.ts"
+import type { PlayerId, PlayerState, Power, Card, Input } from "./protocol.ts"
 import { powerDescription, cardDescription } from "./protocol.ts"
+import type { Question } from "./common-js/connect.ts"
+import { registerQuestionCleanup, respondToQuestion } from "./questionActions"
+import { conn } from "./main.ts"
 import cardsInHandIcon from "./images/cards-in-hand.svg"
 import cardsPlayedIcon from "./images/cards-played.svg"
 import followersIconSrc from "./images/followers.svg"
 import soldiersIconSrc from "./images/soldier.svg"
 import pointsIconSrc from "./images/points.svg"
+
+/**
+ * Get the display name of a card
+ */
+function cardName(card: Card): string {
+  switch (card) {
+    case "plagueOfLocusts":
+      return "Plague of Locusts"
+    case "buildMonument":
+      return "Build Monument"
+    case "chariots":
+      return "Chariots"
+    case "cycleOfMaat":
+      return "Cycle of Ma'at"
+    case "drought":
+      return "Drought"
+    case "flood":
+      return "Flood"
+    case "miracle":
+      return "Miracle"
+  }
+}
+
+/**
+ * Get the strength modifier of a card
+ */
+function cardStrength(card: Card): number {
+  switch (card) {
+    case "plagueOfLocusts":
+      return 1
+    case "drought":
+      return 2
+    default:
+      return 0
+  }
+}
 
 /**
  * Component for rendering a power name
@@ -43,20 +82,51 @@ class PowerComponent implements Component<Power> {
  */
 class CardComponent implements Component<Card> {
   private cardSpan: HTMLElement
+  private strengthBadge: HTMLElement
+  private nameSpan: HTMLElement
   private cardText: Text
   private currentCard: Card | null
 
   constructor() {
     this.cardSpan = document.createElement("span")
     this.cardSpan.className = "card-badge"
-    this.cardText = new Text(this.cardSpan, false)
+
+    this.strengthBadge = document.createElement("span")
+    this.strengthBadge.className = "card-strength-badge"
+
+    this.nameSpan = document.createElement("span")
+    this.nameSpan.className = "card-name"
+
+    this.cardSpan.appendChild(this.strengthBadge)
+    this.cardSpan.appendChild(this.nameSpan)
+    this.cardText = new Text(this.nameSpan, false)
     this.currentCard = null
   }
 
   set(card: Card): boolean {
     this.currentCard = card
     this.cardSpan.title = cardDescription(card)
-    return this.cardText.set(card)
+    const strength = cardStrength(card)
+    this.strengthBadge.textContent = `${strength}`
+    return this.cardText.set(cardName(card))
+  }
+
+  ask(question: Question<Input>): void {
+    if (this.currentCard === null) return
+
+    this.cardSpan.classList.add("clickable")
+    this.cardSpan.style.cursor = "pointer"
+
+    const clickHandler = () => {
+      respondToQuestion(question)
+    }
+
+    this.cardSpan.addEventListener("click", clickHandler)
+    registerQuestionCleanup(() => {
+      this.cardSpan.removeEventListener("click", clickHandler)
+      this.cardSpan.classList.remove("clickable")
+      this.cardSpan.style.cursor = ""
+    })
   }
 
   destroy(): void {
@@ -74,6 +144,7 @@ class CardComponent implements Component<Card> {
  */
 export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
   private playerDiv: HTMLElement
+  private playerId: PlayerId
   private idText: Text
   private followersIcon: HTMLImageElement
   private followersText: Text
@@ -173,7 +244,7 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
 
     // Hand cards container
     this.handContainer = document.createElement("div")
-    this.handContainer.className = "card-container"
+    this.handContainer.className = "card-container card-container-hand"
 
     this.handList = new List<Card>(() => {
       const comp = new CardComponent()
@@ -188,7 +259,7 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
 
     // Played cards container
     this.playedContainer = document.createElement("div")
-    this.playedContainer.className = "card-container"
+    this.playedContainer.className = "card-container card-container-played"
 
     this.playedList = new List<Card>(() => {
       const comp = new CardComponent()
@@ -210,6 +281,7 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
   }
 
   set([id, state]: [PlayerId, PlayerState]): boolean {
+    this.playerId = id
     const idChanged = this.idText.set(`${id}:`)
     const followersChanged = this.followersText.set(`${state.followers}`)
     const soldiersChanged = this.soldiersText.set(`${state.soldiers}`)
@@ -220,6 +292,39 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
 
     return idChanged || followersChanged || soldiersChanged ||
            pointsChanged || powersChanged || handChanged || playedChanged
+  }
+
+  handleChooseCardQuestion(card: Card, question: Question<Input>): void {
+    // Only handle this question if this component represents the current player
+    if (conn.playerId !== this.playerId) {
+      return
+    }
+
+    // Remember if hand was already visible
+    const wasVisible = this.handContainer.classList.contains("visible")
+
+    // Make hand visible if it's not already
+    if (!wasVisible) {
+      this.handContainer.classList.add("visible")
+      this.handIcon.classList.add("active")
+
+      // Restore visibility state when question is done
+      registerQuestionCleanup(() => {
+        this.handContainer.classList.remove("visible")
+        this.handIcon.classList.remove("active")
+      })
+    }
+
+    // Find the card component that matches and make it clickable
+    const cardComponents = this.handList.getElements()
+    for (let i = 0; i < cardComponents.length; i++) {
+      const cardComp = cardComponents[i] as CardComponent
+      // Check if this component is displaying the target card
+      if (cardComp['currentCard'] === card) {
+        cardComp.ask(question)
+        break
+      }
+    }
   }
 
   destroy(): void {

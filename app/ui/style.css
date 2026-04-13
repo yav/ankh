@@ -649,11 +649,39 @@ html, body {
 }
 
 .card-badge {
-  margin-right: 8px;
-  padding: 2px 6px;
+  margin: 4px;
+  padding: 4px 8px 4px 4px;
   background-color: #d0e0f0;
-  border-radius: 3px;
+  border: 1px solid #a0b8cc;
+  border-radius: 4px;
   font-size: 0.9em;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-strength-badge {
+  padding-right: 4px;
+  margin-right: 4px;
+  border-right: 1px solid #a0b8cc;
+  font-size: 0.85em;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+}
+
+.card-badge.clickable {
+  background-color: #e3f2fd;
+  border: 2px solid #3498DB;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
+}
+
+.card-badge.clickable:hover {
+  background-color: #bbdefb;
+  border-color: #2980B9;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
 }
 
 .card-toggle-line {
@@ -680,13 +708,24 @@ html, body {
 }
 
 .card-container {
-  margin-left: 32px;
   margin-top: 4px;
+  margin-bottom: 4px;
   display: none;
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: 4px;
 }
 
 .card-container.visible {
-  display: block;
+  display: flex;
+}
+
+.card-container-hand {
+  border-left: 4px solid #7ed321;
+}
+
+.card-container-played {
+  border-left: 4px solid #d0021b;
 }
 
 /* Bid slider container */

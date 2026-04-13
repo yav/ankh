@@ -9,8 +9,9 @@ import Data.List (foldl')
 import KOI.Basics (PlayerId)
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
-import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier)
+import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier, playCardForPlayer)
 import qualified App.State as State
+import App.Cards (Card)
 import App.Board
   ( Board(..)
   , EdgeType(..)
@@ -61,6 +62,7 @@ runAction pid act =
     GainPower -> pure ()
     TestSplitRegion -> doSpliltRegion pid
     TestBid -> doTestBid
+    TestPlayCards -> doTestPlayCards pid
 
 actionHelp :: State -> PlayerId -> Action -> T.Text
 actionHelp st pid act =
@@ -225,3 +227,17 @@ doTestBid =
             AskBid bid -> loseFollowers rpid bid state
             _ -> state
     update (foldl' processBid st' (Map.toList bids))
+
+doTestPlayCards :: PlayerId -> Interact ()
+doTestPlayCards pid =
+  do
+    st <- getState
+    case Map.lookup pid (statePlayers st) of
+      Nothing -> pure ()
+      Just playerState ->
+        do
+          let cardChoices = [ (ChooseCard card, T.pack (show card)) | card <- playerHand playerState ]
+          mbChoice <- chooseMaybe pid (questionFor pid "Select a card to play") cardChoices
+          case mbChoice of
+            Just (ChooseCard card) -> update . playCardForPlayer pid card =<< getState
+            _ -> pure ()

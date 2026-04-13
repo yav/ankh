@@ -8,7 +8,9 @@ const actionLabels: Record<Action, string> = {
   summon: "Summon",
   follower: "Followers",
   power: "Power",
-  testSplitRegion: "Test Split"
+  testSplitRegion: "Test Split",
+  testBid: "Test Bid",
+  testPlayCards: "Test Play Cards"
 }
 
 export class ActionComponent implements Component<[Action, ActionAmount]> {

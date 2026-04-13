@@ -9,6 +9,7 @@ import App.Board
 import Coord (ELoc, FLoc)
 import App.Piece (Piece(..), PlayerPieceType(..))
 import App.PlayerState
+import App.Cards (Card)
 
 data SplitSelectionState = SplitSelectionState
   { splitSelectionEdges :: Set.Set ELoc
@@ -53,6 +54,10 @@ gainFollowers pid n st =
 loseFollowers :: PlayerId -> Int -> State -> State
 loseFollowers pid n st =
   st { statePlayers = Map.adjust (spendFollowers n) pid (statePlayers st) }
+
+playCardForPlayer :: PlayerId -> Card -> State -> State
+playCardForPlayer pid card st =
+  st { statePlayers = Map.adjust (playCard card) pid (statePlayers st) }
 
 summonSoldier :: PlayerId -> FLoc -> State -> State
 summonSoldier pid loc st =
