@@ -34,5 +34,5 @@ instance Component KOI where
   playerUpdateView = playerView
   finalState _     = stateIsFinal
 
-  validInput _ (AskBid maxBid) (AskBid bid) = bid >= 0 && bid <= maxBid
+  validInput _ (AskBid maxBid _) (AskBid bid _) = bid >= 0 && bid <= maxBid
   validInput _ expected response = expected == response

@@ -56,8 +56,9 @@ main = startApp App
                 , playerPowers = Set.fromList [Commanding, Inspiring]
                 , playerHand = [BuildMonument, Chariots, CycleOfMaat, Drought]
                 , playerPlayed = [PlagueOfLocusts, Flood, Miracle]
+                , playerTeam = if i < 2 then 0 else i - 1
                 })
-            | p <- ps
+            | (i, p) <- zip [0..] ps
             ]
           , stateActions = initActionSelector (length ps)
           , stateSplitSelection = emptySplitSelectionState

@@ -12,8 +12,8 @@ export type Input =
   | { tag: "ChoosePiece", contents: HexPos }
   | { tag: "ChooseAction", contents: Action }
   | { tag: "TextQuestion", contents: string }
-  | { tag: "AskBid", contents: number }
-  | { tag: "ChooseCard", contents: Card }
+  | { tag: "AskBid", contents: [number, number[]] }  // [bid amount, teammate bids]
+  | { tag: "ChooseCard", contents: [Card, boolean] }  // [card, teammate selected this]
 
 // Hexagonal coordinate system (FLoc in Haskell)
 // Serialized as [x, y] array

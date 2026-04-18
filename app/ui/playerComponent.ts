@@ -117,6 +117,16 @@ class CardComponent implements Component<Card> {
     this.cardSpan.classList.add("clickable")
     this.cardSpan.style.cursor = "pointer"
 
+    // Check if a teammate selected this card
+    if (question.chChoice.tag === "ChooseCard") {
+      const [_card, teammateSelected] = question.chChoice.contents
+      if (teammateSelected) {
+        this.cardSpan.classList.add("teammate-selected")
+        this.cardSpan.style.border = "3px solid gold"
+        this.cardSpan.style.backgroundColor = "rgba(255, 215, 0, 0.2)"
+      }
+    }
+
     const clickHandler = () => {
       respondToQuestion(question)
     }
@@ -125,7 +135,10 @@ class CardComponent implements Component<Card> {
     registerQuestionCleanup(() => {
       this.cardSpan.removeEventListener("click", clickHandler)
       this.cardSpan.classList.remove("clickable")
+      this.cardSpan.classList.remove("teammate-selected")
       this.cardSpan.style.cursor = ""
+      this.cardSpan.style.border = ""
+      this.cardSpan.style.backgroundColor = ""
     })
   }
 

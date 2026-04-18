@@ -25,14 +25,25 @@ export function registerQuestionCleanup(cleanup: () => void) {
   state.questionCleanup.push(cleanup)
 }
 
-export function respondToQuestion(question: Question<Input>) {
-  if (state === null || connection === null) {
-    throw new Error("Question response is not configured")
+function cleanupCurrentQuestion() {
+  if (state === null) {
+    return
   }
   const cleanup = state.questionCleanup
   state.questionCleanup = []
   for (const fn of cleanup) fn()
   state.questionsContainer = []
   state.questionContainer.textContent = ""
+}
+
+export function cleanupQuestion() {
+  cleanupCurrentQuestion()
+}
+
+export function respondToQuestion(question: Question<Input>) {
+  if (state === null || connection === null) {
+    throw new Error("Question response is not configured")
+  }
+  cleanupCurrentQuestion()
   connection.sendJSON(question)
 }

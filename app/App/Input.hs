@@ -13,6 +13,13 @@ data Input
   | ChoosePiece FLoc
   | ChooseAction Action
   | TextQuestion Text
-  | AskBid Int
-  | ChooseCard Card
+  | AskBid Int [Int]      -- ^ Bid amount, teammate bids
+  | ChooseCard Card Bool  -- ^ Card to play, teammate selected this card
   deriving (Read,Show,Eq,Ord,Generic,JS.ToJSON,JS.FromJSON)
+
+normalizeInput :: Input -> Input
+normalizeInput input =
+    case input of
+      AskBid bid _ -> AskBid bid []
+      ChooseCard card _ -> ChooseCard card False
+      other -> other

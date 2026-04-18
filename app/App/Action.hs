@@ -13,7 +13,6 @@ import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier, playCardForPlayer)
 import qualified App.State as State
-import App.Cards (Card)
 import App.Board
   ( Board(..)
   , EdgeType(..)
@@ -24,7 +23,7 @@ import App.Board
   , validMoveTargets
   , validSummonTargets
   )
-import App.Input (Input(..))
+import App.Input (Input(..), normalizeInput)
 import App.PlayerState (PlayerState(..))
 import App.SplitSelection qualified as SplitSelection
 import Coord (ELoc, FLoc, findRegions)
@@ -64,7 +63,7 @@ runAction pid act =
     GainPower -> pure ()
     TestSplitRegion -> doSpliltRegion pid
     TestBid -> doTestBid
-    TestPlayCards -> doTestPlayCards pid
+    TestPlayCards -> doTestPlayCards
 
 actionHelp :: State -> PlayerId -> Action -> Text
 actionHelp st pid act =
@@ -73,7 +72,7 @@ actionHelp st pid act =
       actionLabel act <> " (+" <> Text.pack (show gainedFollowers) <> ")"
     _ -> actionLabel act
   where
-    gainedFollowers = computeFollowersGain (stateBoard st) pid
+  gainedFollowers = computeFollowersGain (stateBoard st) pid
 
 
 doMove :: PlayerId -> Interact ()
@@ -82,33 +81,33 @@ doMove pid =
     board <- stateBoard <$> getState
     loop (Set.fromList (playerPieceLocations pid board))
   where
-    loop available | Set.null available = pure ()
-    loop available =
-      do
-        board <- getsState stateBoard
-        let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> Text.pack (show loc))
-                           | loc <- Set.toList available ]
-            stopChoice = (TextQuestion "End Moving", "I am done moving pieces")
+  loop available | Set.null available = pure ()
+  loop available =
+    do
+      board <- getsState stateBoard
+      let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> Text.pack (show loc))
+                         | loc <- Set.toList available ]
+          stopChoice = (TextQuestion "End Moving", "I am done moving pieces")
 
-        choice <- choose pid (questionFor pid "Select a piece to move") (stopChoice : pieceChoices)
-        case choice of
-          ChoosePiece loc ->
-            do
-              let targets = validMoveTargets board loc
-              if null targets
-                then loop (Set.delete loc available)
-                else
-                  do
-                    targetChoice <-
-                      choose pid (questionFor pid "Select destination")
-                        [ (ChooseHex t, Text.pack (show t)) | t <- targets ]
-                    case targetChoice of
-                      ChooseHex to ->
-                        do
-                          updateBoard (movePiece pid loc to)
-                          loop (Set.delete loc available)
-                      _ -> loop available
-          _ -> pure ()
+      choice <- choose pid (questionFor pid "Select a piece to move") (stopChoice : pieceChoices)
+      case choice of
+        ChoosePiece loc ->
+          do
+            let targets = validMoveTargets board loc
+            if null targets
+              then loop (Set.delete loc available)
+              else
+                do
+                  targetChoice <-
+                    choose pid (questionFor pid "Select destination")
+                      [ (ChooseHex t, Text.pack (show t)) | t <- targets ]
+                  case targetChoice of
+                    ChooseHex to ->
+                      do
+                        updateBoard (movePiece pid loc to)
+                        loop (Set.delete loc available)
+                    _ -> loop available
+        _ -> pure ()
 
 doSummon :: PlayerId -> Interact ()
 doSummon pid =
@@ -141,7 +140,8 @@ doGainFollowers pid =
 
 updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState
-  where updateB f' s = s { stateBoard = f' (stateBoard s) }
+  where
+  updateB f' s = s { stateBoard = f' (stateBoard s) }
 
 doSpliltRegion :: PlayerId -> Interact ()
 doSpliltRegion pid =
@@ -156,9 +156,10 @@ doSpliltRegion pid =
 
     case split of
       Nothing -> pure ()
-      Just (rid, selectedEdges) -> do
-        updateBoard (applySelectedSplit rid selectedEdges)
-        pure ()
+      Just (rid, selectedEdges) ->
+        do
+          updateBoard (applySelectedSplit rid selectedEdges)
+          pure ()
 
 -- | Apply a chosen split to the board by replacing the original region with the
 -- two resulting subregions and adding the separating edges as camel borders.
@@ -187,16 +188,16 @@ applySelectedSplit oldRegionId selectedEdges board =
             , boardNextRegionId = newRegionId + 1
             }
           where
-            newRegionId = boardNextRegionId board
-            regions1 = Map.delete oldRegionId (boardRegions board)
-            regions2 =
-              Map.insert newRegionId regionB
-                (Map.insert oldRegionId regionA regions1)
-            edges2 =
-              foldl'
-                (\acc edge -> Map.insert edge CamelsEdge acc)
-                (boardEdges board)
-                (Set.toList selectedEdges)
+          newRegionId = boardNextRegionId board
+          regions1 = Map.delete oldRegionId (boardRegions board)
+          regions2 =
+            Map.insert newRegionId regionB
+              (Map.insert oldRegionId regionA regions1)
+          edges2 =
+            foldl'
+              (\acc edge -> Map.insert edge CamelsEdge acc)
+              (boardEdges board)
+              (Set.toList selectedEdges)
 
 splitRegionByEdges :: Set FLoc -> Set ELoc -> Maybe (Set FLoc, Set FLoc)
 splitRegionByEdges wholeRegion separatorEdges =
@@ -204,9 +205,13 @@ splitRegionByEdges wholeRegion separatorEdges =
     [regionA, regionB] -> Just (regionA, regionB)
     _ -> Nothing
 
+allSame :: Eq a => [a] -> Bool
+allSame [] = True
+allSame (x:xs) = all (== x) xs
+
 {- | Ask multiple players questions and wait for all of them to respond.
-Returns a map from each player to their chosen response.
-The question text can vary based on who has responded and who hasn't.
+Returns responses grouped first by team, then by player.
+Players on the same team must reach agreement---they all need to select the same answer.
 Uses 'inUndoGroup' so each player can undo their response even after others respond. -}
 askInputsAll ::
   ([PlayerId] -> [PlayerId] -> Text)
@@ -214,23 +219,72 @@ askInputsAll ::
        First argument: players who have already responded.
        Second argument: players who haven't responded yet. -} ->
   [(PlayerId, [(Input, Text)])]
-  {- ^ For each player, a list of possible choices with descriptions -} ->
-  Interact (Map PlayerId Input)
+  {- ^ For each team, selections by each player -} ->
+  Interact (Map Int (Map PlayerId Input))
 askInputsAll mkQuestion playerOpts =
-  inUndoGroup (go Map.empty (Map.fromList playerOpts))
+  inUndoGroup
+  do
+    st <- getState
+    let playerTeams = Map.fromList [ (pid, playerTeam ps)
+                                   | (pid, ps) <- Map.toList (statePlayers st) ]
+        allChoices = Map.fromList playerOpts
+    go playerTeams Map.empty allChoices allChoices
   where
-    go accumulated remaining =
-      if Map.null remaining
-        then pure accumulated
-        else
-          let responded = Map.keys accumulated
-              notResponded = Map.keys remaining
-              q = mkQuestion responded notResponded
-          in askInputsWith q
-            [ (pid :-> choice, help, \response -> go (Map.insert pid response accumulated) (Map.delete pid remaining))
-            | (pid, choices) <- Map.toList remaining
-            , (choice, help) <- choices
-            ]
+  go teams teamResponses remaining allChoices
+    | Map.null remaining =
+      if checkTeamAgreement teamResponses
+        then pure teamResponses
+        else askInputsWith "Team needs to agree on selection" []
+    | otherwise =
+      askInputsWith q
+        [ (pid :-> annotateChoice myTeammateResponses choice, help,
+           \response ->
+             let team = Map.findWithDefault 0 pid teams
+                 -- Check if this response conflicts with teammates
+                 conflictingPids =
+                   case Map.lookup team teamResponses of
+                     Nothing -> []
+                     Just teamMap ->
+                       [ tpid
+                       | (tpid, tresponse) <- Map.toList teamMap
+                       , normalizeInput response /= normalizeInput tresponse
+                       ]
+                 -- Remove conflicting teammates' responses and return them to remaining
+                 newTeamResponses =
+                   case Map.lookup team teamResponses of
+                     Nothing -> Map.singleton team (Map.singleton pid response)
+                     Just teamMap ->
+                       let cleanedTeamMap = foldl' (flip Map.delete) teamMap conflictingPids
+                           updatedTeamMap = Map.insert pid response cleanedTeamMap
+                       in Map.insert team updatedTeamMap teamResponses
+                 newRemaining =
+                   foldl' (\acc cpid -> Map.insert cpid (allChoices Map.! cpid) acc)
+                          (Map.delete pid remaining)
+                          conflictingPids
+             in go teams newTeamResponses newRemaining allChoices)
+        | (pid, choices) <- Map.toList remaining
+        , let myTeammateResponses =
+                [ resp
+                | Just myTeam   <- [Map.lookup pid teams]
+                , Just teamMap  <- [Map.lookup myTeam teamResponses]
+                , (_, resp)     <- Map.toList teamMap
+                ]
+        , (choice, help) <- choices
+        ]
+      where
+      responded    = [ pid | teamMap <- Map.elems teamResponses, pid <- Map.keys teamMap ]
+      notResponded = Map.keys remaining
+      q = mkQuestion responded notResponded
+      
+  checkTeamAgreement teamResponses =
+    and [ allSame (map normalizeInput (Map.elems teamMap))
+        | teamMap <- Map.elems teamResponses ]
+
+  annotateChoice teammates choice =
+    case choice of
+      AskBid bid _   -> AskBid bid [ b | AskBid b _ <- teammates ]
+      ChooseCard c _ -> ChooseCard c (or [ c == c' | ChooseCard c' _ <- teammates ])  
+      other -> other
 
 doTestBid :: Interact ()
 doTestBid =
@@ -238,13 +292,13 @@ doTestBid =
     st <- getState
     let playerChoices =
           [ (p, if maxBid == 0
-                    then [(AskBid 0, "You have no followers")]
-                    else [(AskBid maxBid, "Bid between 0 and " <> Text.pack (show maxBid))])
+                    then [(AskBid 0 [], "You have no followers")]
+                    else [(AskBid maxBid [], "Bid between 0 and " <> Text.pack (show maxBid))])
           | (p, playerState) <- Map.toList (statePlayers st)
           , let maxBid = playerFollowers playerState
           ]
 
-    bids <- askInputsAll
+    teamBids <- askInputsAll
       (\responded notResponded ->
         let x = length responded
             y = x + length notResponded
@@ -254,20 +308,33 @@ doTestBid =
     st' <- getState
     let processBid state (rpid, input) =
           case input of
-            AskBid bid -> loseFollowers rpid bid state
+            AskBid bid _ -> loseFollowers rpid bid state
             _ -> state
-    update (foldl' processBid st' (Map.toList bids))
+        allBids = [ (pid, input) | teamMap <- Map.elems teamBids, (pid, input) <- Map.toList teamMap ]
+    update (foldl' processBid st' allBids)
 
-doTestPlayCards :: PlayerId -> Interact ()
-doTestPlayCards pid =
+doTestPlayCards :: Interact ()
+doTestPlayCards =
   do
     st <- getState
-    case Map.lookup pid (statePlayers st) of
-      Nothing -> pure ()
-      Just playerState ->
-        do
-          let cardChoices = [ (ChooseCard card, Text.pack (show card)) | card <- playerHand playerState ]
-          mbChoice <- chooseMaybe pid (questionFor pid "Select a card to play") cardChoices
-          case mbChoice of
-            Just (ChooseCard card) -> update . playCardForPlayer pid card =<< getState
-            _ -> pure ()
+    let playerChoices =
+          [ (p, [ (ChooseCard card False, Text.pack (show card))
+                | card <- playerHand playerState
+                ])
+          | (p, playerState) <- Map.toList (statePlayers st)
+          ]
+
+    teamCards <- askInputsAll
+      (\responded notResponded ->
+        let x = length responded
+            y = x + length notResponded
+        in "Playing cards (" <> Text.pack (show x) <> "/" <> Text.pack (show y) <> "): Select a card to play")
+      playerChoices
+
+    st' <- getState
+    let playCard state (rpid, input) =
+          case input of
+            ChooseCard card _ -> playCardForPlayer rpid card state
+            _ -> state
+        allCards = [ (pid, input) | teamMap <- Map.elems teamCards, (pid, input) <- Map.toList teamMap ]
+    update (foldl' playCard st' allCards)

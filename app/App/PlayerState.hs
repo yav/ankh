@@ -14,7 +14,8 @@ data PlayerState = PlayerState {
   playerActions   :: !Int,   -- ^ 1 or 2, depending on if merged
   playerPowers    :: !(Set Power),
   playerHand      :: ![Card],
-  playerPlayed    :: ![Card]
+  playerPlayed    :: ![Card],
+  playerTeam      :: !Int
 }
   deriving (Read, Show)
 
@@ -46,4 +47,5 @@ instance ToJSON PlayerState where
     , "powers"    .= playerPowers ps
     , "hand"      .= playerHand ps
     , "played"    .= playerPlayed ps
+    , "team"      .= playerTeam ps
     ]

@@ -6,7 +6,7 @@ import type { StateView, PlayerId, PlayerState, Action, ActionAmount, Input } fr
 import { List } from "./common-js/combinators.ts"
 import { ActionComponent } from "./actionComponent.ts"
 import { PlayerComponent } from "./playerComponent.ts"
-import { configureQuestionActions, registerQuestionCleanup, respondToQuestion } from "./questionActions"
+import { configureQuestionActions, registerQuestionCleanup, respondToQuestion, cleanupQuestion } from "./questionActions"
 
 type GUI = {
   questionContainer: HTMLElement,
@@ -99,20 +99,21 @@ function uiRedraw (state: GameState) {
 
 // Set the explanation for what we are asking.
 function uiSetQuestion (q: string) {
+  cleanupQuestion()
   gui.questionContainer.textContent = q
   gui.buttonsContainer.innerHTML = ""
   gui.questionsContainer = []
 }
 
 // Handle AskBid question with slider and button
-function handleAskBidQuestion(maxBid: number, q: Question<Input>) {
+function handleAskBidQuestion(bidAmount: number, teammateBids: number[], q: Question<Input>) {
   const container = document.createElement("div")
   container.className = "bid-container"
 
   const slider = document.createElement("input")
   slider.type = "range"
   slider.min = "0"
-  slider.max = maxBid.toString()
+  slider.max = bidAmount.toString()
   slider.value = "0"
   slider.className = "bid-slider"
 
@@ -124,6 +125,13 @@ function handleAskBidQuestion(maxBid: number, q: Question<Input>) {
     valueDisplay.textContent = slider.value
   })
 
+  if (teammateBids.length > 0) {
+    const teammateBidsDisplay = document.createElement("div")
+    teammateBidsDisplay.className = "teammate-bids"
+    teammateBidsDisplay.textContent = `Teammate bids: ${teammateBids.join(", ")}`
+    container.appendChild(teammateBidsDisplay)
+  }
+
   const button = uiFromTemplate("template-btn")
   button.textContent = "Bid"
   button.title = q.chHelp
@@ -133,7 +141,7 @@ function handleAskBidQuestion(maxBid: number, q: Question<Input>) {
       ...q,
       chChoice: {
         tag: "AskBid" as const,
-        contents: parseInt(slider.value)
+        contents: [parseInt(slider.value), teammateBids] as [number, number[]]
       }
     }
     respondToQuestion(modifiedQuestion)
@@ -165,7 +173,10 @@ function uiQuestion (q: Question<Input>) {
       break
 
     case "AskBid":
-      handleAskBidQuestion(q.chChoice.contents, q)
+      {
+        const [bidAmount, teammateBids] = q.chChoice.contents
+        handleAskBidQuestion(bidAmount, teammateBids, q)
+      }
       break
 
     case "ChooseAction":
@@ -191,7 +202,7 @@ function uiQuestion (q: Question<Input>) {
 
     case "ChooseCard":
       {
-        const card = q.chChoice.contents
+        const [card, _teammateSelected] = q.chChoice.contents
         const playerComponents = gui.playersComponent.getElements()
         for (const playerComponent of playerComponents) {
           (playerComponent as PlayerComponent).handleChooseCardQuestion(card, q)
