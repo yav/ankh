@@ -1,12 +1,14 @@
 module App.Action where
 
-import Data.Text qualified as T
+import Data.Text (Text)
+import Data.Text qualified as Text
+import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Set (Set)
 import Data.List (foldl')
 
-import KOI.Basics (PlayerId)
+import KOI.Basics (PlayerId, WithPlayer(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier, playCardForPlayer)
@@ -64,11 +66,11 @@ runAction pid act =
     TestBid -> doTestBid
     TestPlayCards -> doTestPlayCards pid
 
-actionHelp :: State -> PlayerId -> Action -> T.Text
+actionHelp :: State -> PlayerId -> Action -> Text
 actionHelp st pid act =
   case act of
     GainFollowers ->
-      actionLabel act <> " (+" <> T.pack (show gainedFollowers) <> ")"
+      actionLabel act <> " (+" <> Text.pack (show gainedFollowers) <> ")"
     _ -> actionLabel act
   where
     gainedFollowers = computeFollowersGain (stateBoard st) pid
@@ -84,7 +86,7 @@ doMove pid =
     loop available =
       do
         board <- getsState stateBoard
-        let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> T.pack (show loc))
+        let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> Text.pack (show loc))
                            | loc <- Set.toList available ]
             stopChoice = (TextQuestion "End Moving", "I am done moving pieces")
 
@@ -99,7 +101,7 @@ doMove pid =
                   do
                     targetChoice <-
                       choose pid (questionFor pid "Select destination")
-                        [ (ChooseHex t, T.pack (show t)) | t <- targets ]
+                        [ (ChooseHex t, Text.pack (show t)) | t <- targets ]
                     case targetChoice of
                       ChooseHex to ->
                         do
@@ -124,7 +126,7 @@ doSummon pid =
                   do
                     choice <-
                       choose pid (questionFor pid "Select a hex for summoning")
-                        [ (ChooseHex loc, T.pack (show loc)) | loc <- targets ]
+                        [ (ChooseHex loc, Text.pack (show loc)) | loc <- targets ]
                     case choice of
                       ChooseHex loc -> update (summonSoldier pid loc st)
                       _ -> pure ()
@@ -202,6 +204,34 @@ splitRegionByEdges wholeRegion separatorEdges =
     [regionA, regionB] -> Just (regionA, regionB)
     _ -> Nothing
 
+{- | Ask multiple players questions and wait for all of them to respond.
+Returns a map from each player to their chosen response.
+The question text can vary based on who has responded and who hasn't.
+Uses 'inUndoGroup' so each player can undo their response even after others respond. -}
+askInputsAll ::
+  ([PlayerId] -> [PlayerId] -> Text)
+  {- ^ Description of what we are asking.
+       First argument: players who have already responded.
+       Second argument: players who haven't responded yet. -} ->
+  [(PlayerId, [(Input, Text)])]
+  {- ^ For each player, a list of possible choices with descriptions -} ->
+  Interact (Map PlayerId Input)
+askInputsAll mkQuestion playerOpts =
+  inUndoGroup (go Map.empty (Map.fromList playerOpts))
+  where
+    go accumulated remaining =
+      if Map.null remaining
+        then pure accumulated
+        else
+          let responded = Map.keys accumulated
+              notResponded = Map.keys remaining
+              q = mkQuestion responded notResponded
+          in askInputsWith q
+            [ (pid :-> choice, help, \response -> go (Map.insert pid response accumulated) (Map.delete pid remaining))
+            | (pid, choices) <- Map.toList remaining
+            , (choice, help) <- choices
+            ]
+
 doTestBid :: Interact ()
 doTestBid =
   do
@@ -209,7 +239,7 @@ doTestBid =
     let playerChoices =
           [ (p, if maxBid == 0
                     then [(AskBid 0, "You have no followers")]
-                    else [(AskBid maxBid, "Bid between 0 and " <> T.pack (show maxBid))])
+                    else [(AskBid maxBid, "Bid between 0 and " <> Text.pack (show maxBid))])
           | (p, playerState) <- Map.toList (statePlayers st)
           , let maxBid = playerFollowers playerState
           ]
@@ -218,7 +248,7 @@ doTestBid =
       (\responded notResponded ->
         let x = length responded
             y = x + length notResponded
-        in "Bidding (" <> T.pack (show x) <> "/" <> T.pack (show y) <> "): How many followers do you want to bid?")
+        in "Bidding (" <> Text.pack (show x) <> "/" <> Text.pack (show y) <> "): How many followers do you want to bid?")
       playerChoices
 
     st' <- getState
@@ -236,7 +266,7 @@ doTestPlayCards pid =
       Nothing -> pure ()
       Just playerState ->
         do
-          let cardChoices = [ (ChooseCard card, T.pack (show card)) | card <- playerHand playerState ]
+          let cardChoices = [ (ChooseCard card, Text.pack (show card)) | card <- playerHand playerState ]
           mbChoice <- chooseMaybe pid (questionFor pid "Select a card to play") cardChoices
           case mbChoice of
             Just (ChooseCard card) -> update . playCardForPlayer pid card =<< getState
