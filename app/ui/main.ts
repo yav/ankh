@@ -2,10 +2,11 @@ import { srvConnect } from "./common-js/connect.ts"
 import type { Connection, Question } from "./common-js/connect.ts"
 import { uiFromTemplate } from "./common-js/template.ts"
 import { BoardComponent } from "./boardComponent.ts"
-import type { StateView, PlayerId, PlayerState, Action, ActionAmount, Input } from "./protocol.ts"
+import type { StateView, PlayerId, PlayerState, Action, ActionAmount, Input, LogItem } from "./protocol.ts"
 import { List } from "./common-js/combinators.ts"
 import { ActionComponent } from "./actionComponent.ts"
 import { PlayerComponent } from "./playerComponent.ts"
+import { LogItemComponent } from "./logComponent.ts"
 import { configureQuestionActions, registerQuestionCleanup, respondToQuestion, cleanupQuestion } from "./questionActions"
 
 type GUI = {
@@ -15,7 +16,8 @@ type GUI = {
   questionCleanup: Array<() => void>,
   boardComponent: BoardComponent,
   actionsComponent: List<[Action, ActionAmount]>,
-  playersComponent: List<[PlayerId, PlayerState]>
+  playersComponent: List<[PlayerId, PlayerState]>,
+  logComponent: List<LogItem>
 }
 
 type GameState = {
@@ -69,6 +71,7 @@ function uiRedraw (state: GameState) {
   document.getElementById("board-container")!.innerHTML = ""
   document.getElementById("actions-container")!.innerHTML = ""
   document.getElementById("players-container")!.innerHTML = ""
+  document.getElementById("log-container")!.innerHTML = ""
   questionContainer.innerHTML = ""
   buttonsContainer.innerHTML = ""
 
@@ -80,7 +83,8 @@ function uiRedraw (state: GameState) {
     questionCleanup: [],
     boardComponent: new BoardComponent(),
     actionsComponent: new List<[Action, ActionAmount]>(() => new ActionComponent()),
-    playersComponent: new List<[PlayerId, PlayerState]>(() => new PlayerComponent())
+    playersComponent: new List<[PlayerId, PlayerState]>(() => new PlayerComponent()),
+    logComponent: new List<LogItem>(() => new LogItemComponent())
   }
 
   configureQuestionActions(gui, conn)
@@ -222,4 +226,15 @@ function uiUpdate(state: StateView) {
 
   // Update players display using component
   gui.playersComponent.set(state.players)
+
+  // Update log display
+  const logChanged = gui.logComponent.set(state.log)
+
+  // Scroll to bottom of log if it changed
+  if (logChanged) {
+    const logContainer = document.getElementById("log-container")
+    if (logContainer) {
+      logContainer.scrollTop = logContainer.scrollHeight
+    }
+  }
 }

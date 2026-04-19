@@ -10,6 +10,7 @@ import Coord (ELoc, FLoc)
 import App.Piece (Piece(..), PlayerPieceType(..))
 import App.PlayerState
 import App.Cards (Card)
+import App.LogItem (LogItem(..), LogWord)
 
 data SplitSelectionState = SplitSelectionState
   { splitSelectionEdges :: Set.Set ELoc
@@ -35,6 +36,7 @@ data State = State
   , statePlayers :: Map.Map PlayerId PlayerState
   , stateActions :: Map.Map Action ActionAmount
   , stateSplitSelection :: SplitSelectionState
+  , stateLog     :: [LogItem]
   }
   deriving (Read, Show)
 
@@ -83,3 +85,26 @@ setSplitSelectionInvalid isInvalid st =
 
 clearSplitSelection :: State -> State
 clearSplitSelection st = st { stateSplitSelection = emptySplitSelectionState }
+
+addLogItem :: LogItem -> State -> State
+addLogItem item st = st { stateLog = stateLog st ++ [item] }
+
+-- Note: Log is stored in reverse order (most recent first) for efficiency
+addLogItems :: [LogItem] -> State -> State
+addLogItems items st = st { stateLog = reverse items ++ stateLog st }
+
+addLogEntry :: [LogWord] -> State -> State
+addLogEntry ws st =
+  case stateLog st of
+    LogGroup entries : rest ->
+      st { stateLog = LogGroup (LogEntry ws : entries) : rest }
+    _ -> st { stateLog = LogEntry ws : stateLog st }
+
+addLogEntries :: [[LogWord]] -> State -> State
+addLogEntries wss st =
+  case stateLog st of
+    LogGroup entries : rest -> st { stateLog = LogGroup new : rest }
+      where new = ents ++ entries
+      
+    _ -> st { stateLog = ents ++ stateLog st }
+  where ents = reverse (map LogEntry wss)

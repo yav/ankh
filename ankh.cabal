@@ -33,6 +33,7 @@ executable ankh
                       App.SplitSelection,
                       App.Event,
                       App.Conflict,
+                      App.LogItem,
                       Coord
     build-depends:    base ^>=4.19.2.0,
                       aeson,

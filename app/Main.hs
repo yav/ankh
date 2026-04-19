@@ -62,6 +62,7 @@ main = startApp App
             ]
           , stateActions = initActionSelector (length ps)
           , stateSplitSelection = emptySplitSelectionState
+          , stateLog = []
         }
   , appStart = gameLoop
   }

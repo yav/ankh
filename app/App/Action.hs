@@ -8,11 +8,12 @@ import Data.Set qualified as Set
 import Data.Set (Set)
 import Data.List (foldl')
 
-import KOI.Basics (PlayerId, WithPlayer(..))
+import KOI.Basics (PlayerId(..), WithPlayer(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier, playCardForPlayer)
 import qualified App.State as State
+import App.LogItem (LogItem(..), LogWord(..))
 import App.Board
   ( Board(..)
   , EdgeType(..)
@@ -42,6 +43,7 @@ doAction pid =
       [] -> pure ()
       _ ->
         do
+          doStartLogGroup
           choice <-
             choose pid (questionFor pid "Choose an action")
               [ (ChooseAction act, actionHelp st pid act)
@@ -50,7 +52,7 @@ doAction pid =
           case choice of
             ChooseAction act ->
               do
-                update (decrementAction act st)
+                localUpdate_ (decrementAction act)
                 runAction pid act
             _ -> pure ()
 
@@ -79,6 +81,7 @@ doMove :: PlayerId -> Interact ()
 doMove pid =
   do
     board <- stateBoard <$> getState
+    doLog [LogPlayer pid, LogText "moved figures"]
     loop (Set.fromList (playerPieceLocations pid board))
   where
   loop available | Set.null available = pure ()
@@ -127,7 +130,10 @@ doSummon pid =
                       choose pid (questionFor pid "Select a hex for summoning")
                         [ (ChooseHex loc, Text.pack (show loc)) | loc <- targets ]
                     case choice of
-                      ChooseHex loc -> update (summonSoldier pid loc st)
+                      ChooseHex loc ->
+                        do
+                          update (summonSoldier pid loc st)
+                          doLog [LogPlayer pid, LogText "summoned a soldier"]
                       _ -> pure ()
       _ -> pure ()
 
@@ -137,11 +143,32 @@ doGainFollowers pid =
     st <- getState
     let amount = computeFollowersGain (stateBoard st) pid
     update (gainFollowers pid amount st)
+    doLog [LogPlayer pid, LogText "gained", LogFollowers amount]
 
 updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState
   where
   updateB f' s = s { stateBoard = f' (stateBoard s) }
+
+sync :: Interact ()
+sync = do
+  st <- getState
+  update st
+
+doLog :: [LogWord] -> Interact ()
+doLog ws = do
+  st <- getState
+  update (State.addLogEntry ws st)
+
+doLogMultiple :: [[LogWord]] -> Interact ()
+doLogMultiple wss = do
+  st <- getState
+  update (State.addLogEntries wss st)
+
+doStartLogGroup :: Interact ()
+doStartLogGroup = do
+  st <- getState
+  update (State.addLogItems [LogGroup []] st)
 
 doSpliltRegion :: PlayerId -> Interact ()
 doSpliltRegion pid =
@@ -159,7 +186,7 @@ doSpliltRegion pid =
       Just (rid, selectedEdges) ->
         do
           updateBoard (applySelectedSplit rid selectedEdges)
-          pure ()
+          doLog [LogPlayer pid, LogText ("split region " <> Text.pack (show rid))]
 
 -- | Apply a chosen split to the board by replacing the original region with the
 -- two resulting subregions and adding the separating edges as camel borders.
@@ -231,10 +258,7 @@ askInputsAll mkQuestion playerOpts =
     go playerTeams Map.empty allChoices allChoices
   where
   go teams teamResponses remaining allChoices
-    | Map.null remaining =
-      if checkTeamAgreement teamResponses
-        then pure teamResponses
-        else askInputsWith "Team needs to agree on selection" []
+    | Map.null remaining = pure teamResponses
     | otherwise =
       askInputsWith q
         [ (pid :-> annotateChoice myTeammateResponses choice, help,
@@ -252,7 +276,7 @@ askInputsAll mkQuestion playerOpts =
                  -- Remove conflicting teammates' responses and return them to remaining
                  newTeamResponses =
                    case Map.lookup team teamResponses of
-                     Nothing -> Map.singleton team (Map.singleton pid response)
+                     Nothing -> Map.insert team (Map.singleton pid response) teamResponses
                      Just teamMap ->
                        let cleanedTeamMap = foldl' (flip Map.delete) teamMap conflictingPids
                            updatedTeamMap = Map.insert pid response cleanedTeamMap
@@ -276,10 +300,6 @@ askInputsAll mkQuestion playerOpts =
       notResponded = Map.keys remaining
       q = mkQuestion responded notResponded
       
-  checkTeamAgreement teamResponses =
-    and [ allSame (map normalizeInput (Map.elems teamMap))
-        | teamMap <- Map.elems teamResponses ]
-
   annotateChoice teammates choice =
     case choice of
       AskBid bid _   -> AskBid bid [ b | AskBid b _ <- teammates ]
@@ -313,6 +333,11 @@ doTestBid =
         allBids = [ (pid, input) | teamMap <- Map.elems teamBids, (pid, input) <- Map.toList teamMap ]
     update (foldl' processBid st' allBids)
 
+    -- Log results after all bids are revealed
+    let bidLogs = [ [LogPlayer rpid, LogText "bid", LogFollowers bid]
+                  | (rpid, AskBid bid _) <- allBids ]
+    doLogMultiple bidLogs
+
 doTestPlayCards :: Interact ()
 doTestPlayCards =
   do
@@ -337,4 +362,10 @@ doTestPlayCards =
             ChooseCard card _ -> playCardForPlayer rpid card state
             _ -> state
         allCards = [ (pid, input) | teamMap <- Map.elems teamCards, (pid, input) <- Map.toList teamMap ]
+
     update (foldl' playCard st' allCards)
+
+    -- Log results after all cards are revealed
+    let cardLogs = [ [LogPlayer rpid, LogText "played", LogCard card]
+                   | (rpid, ChooseCard card _) <- allCards ]
+    doLogMultiple cardLogs

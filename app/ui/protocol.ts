@@ -125,12 +125,25 @@ export const emptySplitSelectionState: SplitSelectionState = {
   invalid: false
 }
 
+// Log word type - inline elements
+export type LogWord =
+  | { tag: "text", contents: string }
+  | { tag: "player", contents: PlayerId }
+  | { tag: "card", contents: Card }
+  | { tag: "followers", contents: number }
+
+// Log item type - block elements (recursive)
+export type LogItem =
+  | { tag: "entry", contents: LogWord[] }
+  | { tag: "group", contents: LogItem[] }
+
 // State view of the game
 export type StateView = {
   board: Board,
   players: [PlayerId, PlayerState][],
   actions: [Action, ActionAmount][],
-  splitSelection: SplitSelectionState
+  splitSelection: SplitSelectionState,
+  log: LogItem[]
 }
 
 // Get the description of a power
