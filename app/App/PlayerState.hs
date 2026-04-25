@@ -10,7 +10,7 @@ import App.Cards (Card)
 data PlayerState = PlayerState {
   playerFollowers :: !Int,
   playerSoldiers  :: !Int,
-  playerPoints    :: !Int,
+  playerPoints    :: !(Int,Int), -- ^ (points, tiebreaker)
   playerActions   :: !Int,   -- ^ 1 or 2, depending on if merged
   playerPowers    :: !(Set Power),
   playerHand      :: ![Card],
@@ -42,7 +42,7 @@ instance ToJSON PlayerState where
   toJSON ps = JS.object
     [ "followers" .= playerFollowers ps
     , "soldiers"  .= playerSoldiers ps
-    , "points"    .= playerPoints ps
+    , "points"    .= let (x,y) = playerPoints ps in fromIntegral x + fromIntegral y / 10 :: Double
     , "actions"   .= playerActions ps
     , "powers"    .= playerPowers ps
     , "hand"      .= playerHand ps

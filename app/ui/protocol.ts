@@ -85,7 +85,7 @@ export type ActionAmount = {
   max: number
 }
 
-export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid" | "testPlayCards"
+export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid" | "testPlayCards" | "testGainPoints"
 
 // Powers (matches App.Powers)
 export type Power =
@@ -131,6 +131,7 @@ export type LogWord =
   | { tag: "player", contents: PlayerId }
   | { tag: "card", contents: Card }
   | { tag: "followers", contents: number }
+  | { tag: "points", contents: number }
 
 // Log item type - block elements (recursive)
 export type LogItem =

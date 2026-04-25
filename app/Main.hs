@@ -44,6 +44,7 @@ main = startApp App
 
       -- Count soldiers on board for each player
       let soldiersOnBoard = countSoldiersOnBoard board
+          numPlayers = length ps
 
       pure State
         { stateBoard = board
@@ -51,7 +52,7 @@ main = startApp App
             [ (p, PlayerState
                 { playerFollowers = 2
                 , playerSoldiers = 6 - Map.findWithDefault 0 p soldiersOnBoard
-                , playerPoints = 0
+                , playerPoints = (0, numPlayers - 1 - i)
                 , playerActions = 2
                 , playerPowers = Set.fromList [Commanding, Inspiring]
                 , playerHand = [BuildMonument, Chariots, CycleOfMaat, Drought]
@@ -60,7 +61,7 @@ main = startApp App
                 })
             | (i, p) <- zip [0..] ps
             ]
-          , stateActions = initActionSelector (length ps)
+          , stateActions = initActionSelector numPlayers
           , stateSplitSelection = emptySplitSelectionState
           , stateLog = []
         }

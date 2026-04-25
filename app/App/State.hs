@@ -49,6 +49,23 @@ decrementAction act st =
   where
     dec amount = amount { actionAvailable = actionAvailable amount - 1 }
 
+gainPoints :: PlayerId -> Int -> State -> State
+gainPoints pid n st =
+  st { statePlayers = newPlayers }
+  where
+    players = statePlayers st
+    (x, y)  = maybe (0, 0) playerPoints (Map.lookup pid players)
+    x'      = x + n
+    others  = Map.delete pid players
+    t       = Map.size (Map.filter ((== x') . fst . playerPoints) others)
+    adjustOther ps
+      | (px, py) <- playerPoints ps, px == x, py > y =
+          ps { playerPoints = (px, py - 1) }
+      | otherwise = ps
+    newPlayers =
+      Map.adjust (\ps -> ps { playerPoints = (x', t) }) pid
+      (Map.map adjustOther players)
+
 gainFollowers :: PlayerId -> Int -> State -> State
 gainFollowers pid n st =
   st { statePlayers = Map.adjust (addFollowers n) pid (statePlayers st) }

@@ -6,7 +6,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 
-data Action = MoveFigures | SummonFigure | GainFollowers | GainPower | TestSplitRegion | TestBid | TestPlayCards
+data Action = MoveFigures | SummonFigure | GainFollowers | GainPower | TestSplitRegion | TestBid | TestPlayCards | TestGainPoints
     deriving (Eq, Ord, Enum, Bounded, Read, Show)
 
 data ActionAmount = ActionAmount {
@@ -43,6 +43,7 @@ actionLabel act =
     TestSplitRegion -> "Test Split"
     TestBid -> "Test Bid"
     TestPlayCards -> "Test Play Cards"
+    TestGainPoints -> "Test Gain Points"
 
 instance ToJSON Action where
   toJSON act =
@@ -54,6 +55,7 @@ instance ToJSON Action where
       TestSplitRegion   -> "testSplitRegion"
       TestBid           -> "testBid"
       TestPlayCards     -> "testPlayCards"
+      TestGainPoints    -> "testGainPoints"
 
 instance FromJSON Action where
   parseJSON = JS.withText "Action" $ \txt ->
@@ -65,6 +67,7 @@ instance FromJSON Action where
       "testSplitRegion" -> pure TestSplitRegion
       "testBid" -> pure TestBid
       "testPlayCards" -> pure TestPlayCards
+      "testGainPoints" -> pure TestGainPoints
       _ -> fail ("Unknown action: " ++ show txt)
 
 instance ToJSON ActionAmount where

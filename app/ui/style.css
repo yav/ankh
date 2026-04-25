@@ -830,6 +830,19 @@ html, body {
   vertical-align: middle;
 }
 
+.log-points {
+  margin: 0 4px;
+}
+
+.log-points-icon {
+  height: 1em;
+  width: 1em;
+  vertical-align: middle;
+  position: relative;
+  top: -0.1em;
+  margin: 0 2px;
+}
+
 .log-player-badge {
   display: inline-block;
   padding: 2px 6px;

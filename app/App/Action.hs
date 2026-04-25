@@ -11,7 +11,7 @@ import Data.List (foldl')
 import KOI.Basics (PlayerId(..), WithPlayer(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel)
 import App.KOI
-import App.State (State(..), decrementAction, gainFollowers, loseFollowers, summonSoldier, playCardForPlayer)
+import App.State (State(..), decrementAction, gainFollowers, gainPoints, loseFollowers, summonSoldier, playCardForPlayer)
 import qualified App.State as State
 import App.LogItem (LogItem(..), LogWord(..))
 import App.Board
@@ -66,6 +66,7 @@ runAction pid act =
     TestSplitRegion -> doSpliltRegion pid
     TestBid -> doTestBid
     TestPlayCards -> doTestPlayCards
+    TestGainPoints -> doTestGainPoints pid
 
 actionHelp :: State -> PlayerId -> Action -> Text
 actionHelp st pid act =
@@ -369,3 +370,16 @@ doTestPlayCards =
     let cardLogs = [ [LogPlayer rpid, LogText "played", LogCard card]
                    | (rpid, ChooseCard card _) <- allCards ]
     doLogMultiple cardLogs
+
+doTestGainPoints :: PlayerId -> Interact ()
+doTestGainPoints pid =
+  do
+    choice <- choose pid (questionFor pid "How many points?")
+                [(AskBid 10 [], "Gain between 0 and 10 points")]
+    case choice of
+      AskBid bid _ ->
+        do
+          st <- getState
+          update (gainPoints pid bid st)
+          doLog [LogPlayer pid, LogText "gained", LogPoints bid]
+      _ -> pure ()

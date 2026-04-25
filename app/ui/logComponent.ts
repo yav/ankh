@@ -4,6 +4,7 @@ import type { LogItem, LogWord } from "./protocol.ts"
 import { CardComponent } from "./cardComponent.ts"
 import { PlayerBadgeComponent } from "./playerComponent.ts"
 import followersIconSrc from "./images/followers.svg"
+import pointsIconSrc from "./images/points.svg"
 
 
 class LogTextComponent implements Component<string> {
@@ -56,6 +57,34 @@ class LogFollowersComponent implements Component<number> {
   }
 }
 
+class LogPointsComponent implements Component<number> {
+  private dom: HTMLElement
+  private textNode: Text
+
+  constructor(parent: HTMLElement) {
+    this.dom = document.createElement("span")
+    this.dom.className = "log-points"
+    const numSpan = document.createElement("span")
+    this.textNode = new Text(numSpan, false)
+    const img = document.createElement("img")
+    img.src = pointsIconSrc
+    img.alt = "points"
+    img.className = "log-points-icon"
+    this.dom.appendChild(numSpan)
+    this.dom.appendChild(img)
+    parent.appendChild(this.dom)
+  }
+
+  set(n: number): boolean {
+    return this.textNode.set(`${n}`)
+  }
+
+  destroy(): void {
+    this.textNode.destroy()
+    this.dom.remove()
+  }
+}
+
 class LogCardComponent implements Component<string> {
   private card: CardComponent
 
@@ -85,7 +114,8 @@ class LogEntryComponent implements Component<LogWord[]> {
       text: () => new LogTextComponent(this.dom),
       player: () => new PlayerBadgeComponent(this.dom),
       card: () => new LogCardComponent(this.dom),
-      followers: () => new LogFollowersComponent(this.dom)
+      followers: () => new LogFollowersComponent(this.dom),
+      points: () => new LogPointsComponent(this.dom)
     }))
   }
 
