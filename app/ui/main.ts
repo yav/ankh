@@ -8,6 +8,7 @@ import { ActionComponent } from "./actionComponent.ts"
 import { PlayerComponent } from "./playerComponent.ts"
 import { LogItemComponent } from "./logComponent.ts"
 import { configureQuestionActions, registerQuestionCleanup, respondToQuestion, cleanupQuestion } from "./questionActions"
+import { StructureSupplyComponent } from "./structureSupplyComponent.ts"
 
 type GUI = {
   questionContainer: HTMLElement,
@@ -15,6 +16,7 @@ type GUI = {
   questionsContainer: HTMLElement[],
   questionCleanup: Array<() => void>,
   boardComponent: BoardComponent,
+  structuresComponent: StructureSupplyComponent,
   actionsComponent: List<[Action, ActionAmount]>,
   playersComponent: List<[PlayerId, PlayerState]>,
   logComponent: List<LogItem>
@@ -69,6 +71,7 @@ function uiRedraw (state: GameState) {
 
   // Clear containers
   document.getElementById("board-container")!.innerHTML = ""
+  document.getElementById("structures-supply")!.innerHTML = ""
   document.getElementById("actions-container")!.innerHTML = ""
   document.getElementById("players-container")!.innerHTML = ""
   document.getElementById("log-container")!.innerHTML = ""
@@ -82,6 +85,7 @@ function uiRedraw (state: GameState) {
     questionsContainer: [],
     questionCleanup: [],
     boardComponent: new BoardComponent(),
+    structuresComponent: new StructureSupplyComponent(document.getElementById("structures-supply")!),
     actionsComponent: new List<[Action, ActionAmount]>(() => new ActionComponent()),
     playersComponent: new List<[PlayerId, PlayerState]>(() => new PlayerComponent()),
     logComponent: new List<LogItem>(() => new LogItemComponent())
@@ -223,6 +227,9 @@ function uiUpdate(state: StateView) {
 
   // Update action display
   gui.actionsComponent.set(state.actions)
+
+  // Update structure supply
+  gui.structuresComponent.set(state.structures)
 
   // Update players display using component
   gui.playersComponent.set(state.players)

@@ -73,6 +73,7 @@ export type Board = {
 export type PlayerState = {
   followers: number,
   soldiers: number,
+  buildLimit: number,
   points: number,
   actions: number,
   powers: Power[],
@@ -143,6 +144,7 @@ export type StateView = {
   board: Board,
   players: [PlayerId, PlayerState][],
   actions: [Action, ActionAmount][],
+  structures: [StructureType, number][],
   splitSelection: SplitSelectionState,
   log: LogItem[]
 }

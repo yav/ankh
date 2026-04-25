@@ -59,6 +59,30 @@ html, body {
   height: 16px;
 }
 
+.actions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.structures-supply {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-with-number {
+  margin: 0 4px;
+}
+
+.icon-with-number img {
+  height: 1em;
+  width: 1em;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
 .actions-container {
   display: flex;
   flex-wrap: wrap;
@@ -619,17 +643,6 @@ html, body {
   margin-right: 12px;
 }
 
-.stat-value {
-  margin-right: 12px;
-}
-
-.stat-icon {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 4px;
-  vertical-align: middle;
-}
 
 .player-powers {
   margin-bottom: 4px;
@@ -820,28 +833,6 @@ html, body {
   margin: 8px 0;
 }
 
-.log-followers {
-  margin: 0 4px;
-}
-
-.log-followers-icon {
-  height: 1em;
-  width: 1em;
-  vertical-align: middle;
-}
-
-.log-points {
-  margin: 0 4px;
-}
-
-.log-points-icon {
-  height: 1em;
-  width: 1em;
-  vertical-align: middle;
-  position: relative;
-  top: -0.1em;
-  margin: 0 2px;
-}
 
 .log-player-badge {
   display: inline-block;

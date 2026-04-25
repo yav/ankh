@@ -5,7 +5,7 @@ import App.ActionType (initActionSelector)
 import App.KOI
 import App.State
 import App.PlayerState
-import App.Board (parseBoard, countSoldiersOnBoard)
+import App.Board (parseBoard, countSoldiersOnBoard, countStructuresOnBoard, countPlayerStructures)
 import App.Cards (Card(..))
 import App.Powers (Power(..))
 import qualified Data.Aeson as JS
@@ -42,8 +42,10 @@ main = startApp App
           Left err -> error ("Failed to parse board: " ++ err)
           Right b -> pure b
 
-      -- Count soldiers on board for each player
+      -- Count pieces on board
       let soldiersOnBoard = countSoldiersOnBoard board
+          structuresOnBoard = countStructuresOnBoard board
+          playerStructures = countPlayerStructures board
           numPlayers = length ps
 
       pure State
@@ -52,6 +54,7 @@ main = startApp App
             [ (p, PlayerState
                 { playerFollowers = 2
                 , playerSoldiers = 6 - Map.findWithDefault 0 p soldiersOnBoard
+                , playerBuildLimit = 9 - Map.findWithDefault 0 p playerStructures
                 , playerPoints = (0, numPlayers - 1 - i)
                 , playerActions = 2
                 , playerPowers = Set.fromList [Commanding, Inspiring]
@@ -62,6 +65,10 @@ main = startApp App
             | (i, p) <- zip [0..] ps
             ]
           , stateActions = initActionSelector numPlayers
+          , stateStructures =
+              Map.differenceWith (\total used -> Just (total - used))
+                (Map.fromList [ (stype, 10) | stype <- [minBound .. maxBound] ])
+                structuresOnBoard
           , stateSplitSelection = emptySplitSelectionState
           , stateLog = []
         }

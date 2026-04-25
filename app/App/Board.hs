@@ -17,7 +17,7 @@ import Data.Aeson.Types (Parser)
 import KOI.Basics (PlayerId)
 import Coord (FLoc(..), ELoc(..), findRegions, locationsUpTo)
 import Coord qualified
-import App.Piece (Piece(..), PlayerPieceType(..), parsePiece, pieceOwner)
+import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), parsePiece, pieceOwner)
 
 
 
@@ -266,6 +266,24 @@ countSoldiersOnBoard board =
     , PlayerPiece playerId Soldier <- hexPieces hex
     ]
 
+-- | Count the number of each structure type on the board
+countStructuresOnBoard :: Board -> Map StructureType Int
+countStructuresOnBoard board =
+  Map.fromListWith (+)
+    [ (stype, 1)
+    | hex <- Map.elems (boardHexes board)
+    , Structure _ stype <- hexPieces hex
+    ]
+
+-- | Count structures owned by each player on the board
+countPlayerStructures :: Board -> Map PlayerId Int
+countPlayerStructures board =
+  Map.fromListWith (+)
+    [ (pid, 1)
+    | hex <- Map.elems (boardHexes board)
+    , Structure (Just pid) _ <- hexPieces hex
+    ]
+
 -- | Find all hexagon locations that contain at least one player piece belonging to the given player.
 playerPieceLocations :: PlayerId -> Board -> [FLoc]
 playerPieceLocations pid board =
@@ -413,12 +431,19 @@ hexRegion board loc =
     (rid : _) -> Just rid
     []        -> Nothing
 
--- | Claim the first structure at a location whose current owner satisfies a
--- predicate, setting its owner to the given player.
-claimMonument :: PlayerId -> FLoc -> Board -> Board
+-- | Claim the first structure at a location, setting its owner to the given
+-- player.  Returns the previous owner (if any) and the updated board.
+claimMonument :: PlayerId -> FLoc -> Board -> (Maybe PlayerId, Board)
 claimMonument newOwner loc board =
-  board { boardHexes = Map.adjust claimInHex loc (boardHexes board) }
+  (prevOwner, board { boardHexes = Map.adjust claimInHex loc (boardHexes board) })
   where
+    prevOwner =
+      case Map.lookup loc (boardHexes board) of
+        Just hex -> findStructureOwner (hexPieces hex)
+        Nothing  -> Nothing
+    findStructureOwner [] = Nothing
+    findStructureOwner (Structure owner _ : _) = owner
+    findStructureOwner (_ : rest) = findStructureOwner rest
     claimInHex hex = hex { hexPieces = go (hexPieces hex) }
     go [] = []
     go (Structure _ st : rest) = Structure (Just newOwner) st : rest

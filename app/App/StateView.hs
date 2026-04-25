@@ -16,6 +16,7 @@ instance JS.ToJSON StateView where
     [ "board" JS..= stateBoard st
     , "players" JS..= Map.toList (statePlayers st)
     , "actions" JS..= Map.toList (stateActions st)
+    , "structures" JS..= Map.toList (stateStructures st)
     , "splitSelection" JS..= stateSplitSelection st
     , "log" JS..= reverse (stateLog st)  -- Log is stored reversed, reverse for JSON
     ]

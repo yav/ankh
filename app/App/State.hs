@@ -7,7 +7,7 @@ import qualified Data.Set as Set
 import App.ActionType
 import App.Board
 import Coord (ELoc, FLoc)
-import App.Piece (Piece(..), PlayerPieceType(..))
+import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..))
 import App.PlayerState
 import App.Cards (Card)
 import App.LogItem (LogItem(..), LogWord)
@@ -35,6 +35,7 @@ data State = State
   { stateBoard   :: Board
   , statePlayers :: Map.Map PlayerId PlayerState
   , stateActions :: Map.Map Action ActionAmount
+  , stateStructures :: Map.Map StructureType Int
   , stateSplitSelection :: SplitSelectionState
   , stateLog     :: [LogItem]
   }

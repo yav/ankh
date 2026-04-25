@@ -8,14 +8,15 @@ import App.Powers (Power)
 import App.Cards (Card)
 
 data PlayerState = PlayerState {
-  playerFollowers :: !Int,
-  playerSoldiers  :: !Int,
-  playerPoints    :: !(Int,Int), -- ^ (points, tiebreaker)
-  playerActions   :: !Int,   -- ^ 1 or 2, depending on if merged
-  playerPowers    :: !(Set Power),
-  playerHand      :: ![Card],
-  playerPlayed    :: ![Card],
-  playerTeam      :: !Int
+  playerFollowers  :: !Int,
+  playerSoldiers   :: !Int,
+  playerBuildLimit :: !Int,
+  playerPoints     :: !(Int,Int), -- ^ (points, tiebreaker)
+  playerActions    :: !Int,   -- ^ 1 or 2, depending on if merged
+  playerPowers     :: !(Set Power),
+  playerHand       :: ![Card],
+  playerPlayed     :: ![Card],
+  playerTeam       :: !Int
 }
   deriving (Read, Show)
 
@@ -31,6 +32,9 @@ spendFollowers :: Int -> PlayerState -> PlayerState
 spendFollowers n playerState =
   playerState { playerFollowers = playerFollowers playerState - n }
 
+adjustBuildLimit :: Int -> PlayerState -> PlayerState
+adjustBuildLimit n ps = ps { playerBuildLimit = playerBuildLimit ps + n }
+
 playCard :: Card -> PlayerState -> PlayerState
 playCard card playerState =
   playerState
@@ -40,9 +44,10 @@ playCard card playerState =
 
 instance ToJSON PlayerState where
   toJSON ps = JS.object
-    [ "followers" .= playerFollowers ps
-    , "soldiers"  .= playerSoldiers ps
-    , "points"    .= let (x,y) = playerPoints ps in fromIntegral x + fromIntegral y / 10 :: Double
+    [ "followers"  .= playerFollowers ps
+    , "soldiers"   .= playerSoldiers ps
+    , "buildLimit" .= playerBuildLimit ps
+    , "points"     .= let (x,y) = playerPoints ps in fromIntegral x + fromIntegral y / 10 :: Double
     , "actions"   .= playerActions ps
     , "powers"    .= playerPowers ps
     , "hand"      .= playerHand ps

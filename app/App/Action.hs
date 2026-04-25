@@ -32,7 +32,7 @@ import App.Board
   , validSummonTargets
   )
 import App.Input (Input(..), normalizeInput)
-import App.PlayerState (PlayerState(..))
+import App.PlayerState (PlayerState(..), adjustBuildLimit)
 import App.SplitSelection qualified as SplitSelection
 import Coord (ELoc, FLoc, findRegions, allDirections, flocAdvance, flocEdge)
 
@@ -486,12 +486,19 @@ scoreRegionMajority rid =
 doClaimMonument :: PlayerId -> Interact ()
 doClaimMonument pid =
   do
-    board <- getsState stateBoard
-    let (hasNeutral, neutralAdj, enemyAdj) =
+    st <- getState
+    let board = stateBoard st
+        hasBuildLimit =
+          case Map.lookup pid (statePlayers st) of
+            Just ps -> playerBuildLimit ps > 0
+            Nothing -> False
+
+        (hasNeutral, neutralAdj, enemyAdj) =
           foldl' (classify board) (False, [], [])
                                   (Map.toList (boardHexes board))
 
         targets
+          | not hasBuildLimit = []
           | hasNeutral = neutralAdj
           | otherwise  = enemyAdj
 
@@ -505,7 +512,16 @@ doClaimMonument pid =
           case choice of
             ChooseHex loc ->
               do
-                updateBoard (claimMonument pid loc)
+                let (prevOwner, board') = claimMonument pid loc board
+                    adjustPlayers =
+                      Map.adjust (adjustBuildLimit (-1)) pid
+                      . case prevOwner of
+                          Just prev -> Map.adjust (adjustBuildLimit 1) prev
+                          Nothing   -> id
+                update st
+                  { stateBoard = board'
+                  , statePlayers = adjustPlayers (statePlayers st)
+                  }
                 doLog [LogPlayer pid, LogText "claimed a monument"]
             _ -> pure ()
   where

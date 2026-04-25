@@ -4,12 +4,14 @@ import { powerDescription } from "./protocol.ts"
 import type { Question } from "./common-js/connect.ts"
 import { registerQuestionCleanup } from "./questionActions"
 import { CardComponent } from "./cardComponent.ts"
+import { IconWithNumber } from "./iconWithNumber.ts"
 import { conn } from "./main.ts"
 import cardsInHandIcon from "./images/cards-in-hand.svg"
 import cardsPlayedIcon from "./images/cards-played.svg"
 import followersIconSrc from "./images/followers.svg"
 import soldiersIconSrc from "./images/soldier.svg"
 import pointsIconSrc from "./images/points.svg"
+import ankhIconSrc from "./images/ankh.svg"
 
 // Access global playerColors variable from dynamic.js
 declare global {
@@ -89,12 +91,10 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
   private playerDiv: HTMLElement
   private playerId: PlayerId
   private playerBadge: PlayerBadgeComponent
-  private followersIcon: HTMLImageElement
-  private followersText: Text
-  private soldiersIcon: HTMLImageElement
-  private soldiersText: Text
-  private pointsIcon: HTMLImageElement
-  private pointsText: Text
+  private followersStat: IconWithNumber
+  private soldiersStat: IconWithNumber
+  private buildLimitStat: IconWithNumber
+  private pointsStat: IconWithNumber
   private powersContainer: HTMLElement
   private powersList: List<Power>
   private handIcon: HTMLImageElement
@@ -117,35 +117,10 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
 
     this.playerBadge = new PlayerBadgeComponent(statsLine)
 
-    // Followers with icon
-    this.followersIcon = document.createElement("img")
-    this.followersIcon.src = followersIconSrc
-    this.followersIcon.title = "Followers"
-    this.followersIcon.alt = "Followers"
-    this.followersIcon.className = "stat-icon"
-    const followersSpan = document.createElement("span")
-    followersSpan.className = "stat-value"
-    this.followersText = new Text(followersSpan, false)
-
-    // Soldiers with icon
-    this.soldiersIcon = document.createElement("img")
-    this.soldiersIcon.src = soldiersIconSrc
-    this.soldiersIcon.title = "Soldiers"
-    this.soldiersIcon.alt = "Soldiers"
-    this.soldiersIcon.className = "stat-icon"
-    const soldiersSpan = document.createElement("span")
-    soldiersSpan.className = "stat-value"
-    this.soldiersText = new Text(soldiersSpan, false)
-
-    // Points with icon
-    this.pointsIcon = document.createElement("img")
-    this.pointsIcon.src = pointsIconSrc
-    this.pointsIcon.title = "Points"
-    this.pointsIcon.alt = "Points"
-    this.pointsIcon.className = "stat-icon"
-    const pointsSpan = document.createElement("span")
-    pointsSpan.className = "stat-value"
-    this.pointsText = new Text(pointsSpan, false)
+    this.followersStat = new IconWithNumber(statsLine, followersIconSrc, "Followers")
+    this.soldiersStat = new IconWithNumber(statsLine, soldiersIconSrc, "Soldiers")
+    this.buildLimitStat = new IconWithNumber(statsLine, ankhIconSrc, "Remaining buildings")
+    this.pointsStat = new IconWithNumber(statsLine, pointsIconSrc, "Influence")
 
     // Hand cards icon
     this.handIcon = document.createElement("img")
@@ -161,12 +136,6 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
     this.playedIcon.alt = "Played cards"
     this.playedIcon.className = "card-toggle-icon"
 
-    statsLine.appendChild(this.followersIcon)
-    statsLine.appendChild(followersSpan)
-    statsLine.appendChild(this.soldiersIcon)
-    statsLine.appendChild(soldiersSpan)
-    statsLine.appendChild(this.pointsIcon)
-    statsLine.appendChild(pointsSpan)
     statsLine.appendChild(this.handIcon)
     statsLine.appendChild(this.playedIcon)
 
@@ -223,15 +192,17 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
   set([id, state]: [PlayerId, PlayerState]): boolean {
     this.playerId = id
     const idChanged = this.playerBadge.set(id)
-    const followersChanged = this.followersText.set(`${state.followers}`)
-    const soldiersChanged = this.soldiersText.set(`${state.soldiers}`)
-    const pointsChanged = this.pointsText.set(`${state.points}`)
+    const followersChanged = this.followersStat.set(state.followers)
+    const soldiersChanged = this.soldiersStat.set(state.soldiers)
+    const buildLimitChanged = this.buildLimitStat.set(state.buildLimit)
+    const pointsChanged = this.pointsStat.set(state.points)
     const powersChanged = this.powersList.set(state.powers)
     const handChanged = this.handList.set(state.hand)
     const playedChanged = this.playedList.set(state.played)
 
     return idChanged || followersChanged || soldiersChanged ||
-           pointsChanged || powersChanged || handChanged || playedChanged
+           buildLimitChanged || pointsChanged || powersChanged ||
+           handChanged || playedChanged
   }
 
   handleChooseCardQuestion(card: Card, question: Question<Input>): void {
@@ -269,9 +240,10 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
 
   destroy(): void {
     this.playerBadge.destroy()
-    this.followersText.destroy()
-    this.soldiersText.destroy()
-    this.pointsText.destroy()
+    this.followersStat.destroy()
+    this.soldiersStat.destroy()
+    this.buildLimitStat.destroy()
+    this.pointsStat.destroy()
     this.powersList.destroy()
     this.handList.destroy()
     this.playedList.destroy()
