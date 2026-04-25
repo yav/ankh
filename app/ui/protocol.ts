@@ -85,7 +85,7 @@ export type ActionAmount = {
   max: number
 }
 
-export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid" | "testPlayCards" | "testGainPoints"
+export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid" | "testPlayCards" | "testGainPoints" | "testMonumentMajority" | "testClaimMonument"
 
 // Powers (matches App.Powers)
 export type Power =

@@ -10,6 +10,7 @@ extra-doc-files: CHANGELOG.md
 common settings
     ghc-options: -Wall
     default-extensions: ImportQualifiedPost,
+                        BangPatterns,
                         BlockArguments,
                         DeriveGeneric,
                         DeriveAnyClass,

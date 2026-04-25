@@ -24,7 +24,7 @@ data StructureType
   = Temple
   | Obelisk
   | Pyramid
-  deriving (Read, Show)
+  deriving (Eq, Ord, Enum, Bounded, Read, Show)
 
 -- | Placeholder for guardian types
 data GuardianType = GuardianType

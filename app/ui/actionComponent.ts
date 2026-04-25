@@ -11,7 +11,9 @@ const actionLabels: Record<Action, string> = {
   testSplitRegion: "Test Split",
   testBid: "Test Bid",
   testPlayCards: "Test Play Cards",
-  testGainPoints: "Test Gain Points"
+  testGainPoints: "Test Gain Points",
+  testMonumentMajority: "Test Majority",
+  testClaimMonument: "Test Claim"
 }
 
 export class ActionComponent implements Component<[Action, ActionAmount]> {

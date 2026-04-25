@@ -394,6 +394,36 @@ subregionEdges wholeRegion subRegion =
   where
     restOfWholeRegion = Set.difference wholeRegion subRegion
 
+-- | Get all pieces from all hexes in a region.
+regionPieces :: Board -> RegionId -> [Piece]
+regionPieces board rid =
+  case Map.lookup rid (boardRegions board) of
+    Nothing -> []
+    Just locs ->
+      [ piece
+      | loc <- Set.toList locs
+      , Just hex <- [Map.lookup loc (boardHexes board)]
+      , piece <- hexPieces hex
+      ]
+
+-- | Returns the region a hex belongs to.
+hexRegion :: Board -> FLoc -> Maybe RegionId
+hexRegion board loc =
+  case [ rid | (rid, locs) <- Map.toList (boardRegions board), Set.member loc locs ] of
+    (rid : _) -> Just rid
+    []        -> Nothing
+
+-- | Claim the first structure at a location whose current owner satisfies a
+-- predicate, setting its owner to the given player.
+claimMonument :: PlayerId -> FLoc -> Board -> Board
+claimMonument newOwner loc board =
+  board { boardHexes = Map.adjust claimInHex loc (boardHexes board) }
+  where
+    claimInHex hex = hex { hexPieces = go (hexPieces hex) }
+    go [] = []
+    go (Structure _ st : rest) = Structure (Just newOwner) st : rest
+    go (p : rest) = p : go rest
+
 -- Find all hexagons in a region that are on its border.
 -- A hexagon is on the border when at least one neighboring hexagon
 -- is not a member of the region.

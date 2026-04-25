@@ -6,8 +6,18 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 
-data Action = MoveFigures | SummonFigure | GainFollowers | GainPower | TestSplitRegion | TestBid | TestPlayCards | TestGainPoints
-    deriving (Eq, Ord, Enum, Bounded, Read, Show)
+data Action
+  = MoveFigures
+  | SummonFigure
+  | GainFollowers
+  | GainPower
+  | TestSplitRegion
+  | TestBid
+  | TestPlayCards
+  | TestGainPoints
+  | TestMonumentMajority
+  | TestClaimMonument
+  deriving (Eq, Ord, Enum, Bounded, Read, Show)
 
 data ActionAmount = ActionAmount {
     actionMax :: !Int,
@@ -32,6 +42,17 @@ initActionSelector :: Int -> Map Action ActionAmount
 initActionSelector playerCount =
   Map.fromList [ (act, initActionAmount playerCount act) | act <- allActions ]
 
+isTestAction :: Action -> Bool
+isTestAction act =
+  case act of
+    TestSplitRegion      -> True
+    TestBid              -> True
+    TestPlayCards        -> True
+    TestGainPoints       -> True
+    TestMonumentMajority -> True
+    TestClaimMonument    -> True
+    _                    -> False
+
 -- | Human-readable label for presenting an action choice to the player.
 actionLabel :: Action -> Text
 actionLabel act =
@@ -44,6 +65,8 @@ actionLabel act =
     TestBid -> "Test Bid"
     TestPlayCards -> "Test Play Cards"
     TestGainPoints -> "Test Gain Points"
+    TestMonumentMajority -> "Test Majority"
+    TestClaimMonument -> "Test Claim"
 
 instance ToJSON Action where
   toJSON act =
@@ -56,6 +79,8 @@ instance ToJSON Action where
       TestBid           -> "testBid"
       TestPlayCards     -> "testPlayCards"
       TestGainPoints    -> "testGainPoints"
+      TestMonumentMajority -> "testMonumentMajority"
+      TestClaimMonument -> "testClaimMonument"
 
 instance FromJSON Action where
   parseJSON = JS.withText "Action" $ \txt ->
@@ -68,6 +93,8 @@ instance FromJSON Action where
       "testBid" -> pure TestBid
       "testPlayCards" -> pure TestPlayCards
       "testGainPoints" -> pure TestGainPoints
+      "testMonumentMajority" -> pure TestMonumentMajority
+      "testClaimMonument" -> pure TestClaimMonument
       _ -> fail ("Unknown action: " ++ show txt)
 
 instance ToJSON ActionAmount where

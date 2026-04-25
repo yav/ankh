@@ -6,28 +6,35 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Set (Set)
-import Data.List (foldl')
+import Control.Monad (unless)
+import Data.List (foldl', sortBy)
+import Data.Ord (comparing)
 
 import KOI.Basics (PlayerId(..), WithPlayer(..))
-import App.ActionType (Action(..), ActionAmount(..), actionLabel)
+import App.ActionType (Action(..), ActionAmount(..), actionLabel, isTestAction)
 import App.KOI
 import App.State (State(..), decrementAction, gainFollowers, gainPoints, loseFollowers, summonSoldier, playCardForPlayer)
 import qualified App.State as State
 import App.LogItem (LogItem(..), LogWord(..))
+import App.Piece (Piece(..), StructureType(..), pieceOwner)
 import App.Board
   ( Board(..)
   , EdgeType(..)
+  , Hex(..)
   , RegionId
+  , claimMonument
   , computeFollowersGain
+  , hexRegion
   , movePiece
   , playerPieceLocations
+  , regionPieces
   , validMoveTargets
   , validSummonTargets
   )
 import App.Input (Input(..), normalizeInput)
 import App.PlayerState (PlayerState(..))
 import App.SplitSelection qualified as SplitSelection
-import Coord (ELoc, FLoc, findRegions)
+import Coord (ELoc, FLoc, findRegions, allDirections, flocAdvance, flocEdge)
 
 
 doAction :: PlayerId -> Interact ()
@@ -37,7 +44,7 @@ doAction pid =
     let availableActions =
           [ (act, amount)
           | (act, amount) <- Map.toList (stateActions st)
-          , actionAvailable amount > 0
+          , isTestAction act || actionAvailable amount > 0
           ]
     case availableActions of
       [] -> pure ()
@@ -52,7 +59,8 @@ doAction pid =
           case choice of
             ChooseAction act ->
               do
-                localUpdate_ (decrementAction act)
+                unless (isTestAction act) do
+                  localUpdate_ (decrementAction act)
                 runAction pid act
             _ -> pure ()
 
@@ -67,6 +75,8 @@ runAction pid act =
     TestBid -> doTestBid
     TestPlayCards -> doTestPlayCards
     TestGainPoints -> doTestGainPoints pid
+    TestMonumentMajority -> doTestMonumentMajority pid
+    TestClaimMonument -> doClaimMonument pid
 
 actionHelp :: State -> PlayerId -> Action -> Text
 actionHelp st pid act =
@@ -383,3 +393,144 @@ doTestGainPoints pid =
           update (gainPoints pid bid st)
           doLog [LogPlayer pid, LogText "gained", LogPoints bid]
       _ -> pure ()
+
+doTestMonumentMajority :: PlayerId -> Interact ()
+doTestMonumentMajority pid =
+  do
+    rid <- chooseRegion pid "Select a region for monument majority"
+    scoreRegionMajority rid
+
+-- | Let a player pick a region by clicking any hex that belongs to it.
+chooseRegion :: PlayerId -> Text -> Interact RegionId
+chooseRegion pid prompt =
+  do
+    board <- getsState stateBoard
+    let hexChoices =
+          [ (loc, rid)
+          | (rid, locs) <- Map.toList (boardRegions board)
+          , loc <- Set.toList locs
+          ]
+    choice <-
+      choose pid (questionFor pid prompt)
+        [ (ChooseHex loc, "Region " <> Text.pack (show rid))
+        | (loc, rid) <- hexChoices
+        ]
+    case choice of
+      ChooseHex loc ->
+        do
+          board' <- getsState stateBoard
+          case hexRegion board' loc of
+            Just rid -> pure rid
+            Nothing  -> chooseRegion pid prompt
+      _ -> chooseRegion pid prompt
+
+scoreRegionMajority :: RegionId -> Interact ()
+scoreRegionMajority rid =
+  do
+    board <- getsState stateBoard
+    let pieces = regionPieces board rid
+
+        -- Players who own at least one piece in the region
+        presentPlayers =
+          Set.fromList [ p | piece <- pieces, Just p <- [pieceOwner piece] ]
+
+        -- Count owned structures per (PlayerId, StructureType)
+        structCounts :: Map (PlayerId, StructureType) Int
+        structCounts =
+          Map.fromListWith (+)
+            [ ((p, st), 1)
+            | Structure (Just p) st <- pieces
+            ]
+
+        -- For each structure type, find the strict majority winner
+        winnerFor :: StructureType -> Maybe PlayerId
+        winnerFor stype =
+          let counts =
+                [ (p, n)
+                | p <- Set.toList presentPlayers
+                , let n = Map.findWithDefault 0 (p, stype) structCounts
+                , n > 0
+                ]
+          in case sortBy (flip (comparing snd)) counts of
+               (p1, n1) : (_, n2) : _ | n1 > n2 -> Just p1
+               [(p1, _)]                         -> Just p1
+               _                                 -> Nothing
+
+        -- Sum winnings per player across all structure types
+        winnings :: Map PlayerId Int
+        winnings =
+          Map.fromListWith (+)
+            [ (p, 1)
+            | stype <- [minBound .. maxBound]
+            , Just p <- [winnerFor stype]
+            ]
+
+    -- Sort winners by playerPoints ascending (fewest first)
+    players <- getsState statePlayers
+    let sortedWinners =
+          sortBy (comparing (\(p, _) -> Map.lookup p players >>= Just . playerPoints))
+            (Map.toList winnings)
+
+    -- Award points one at a time, re-reading state each iteration
+    mapM_ awardWinner sortedWinners
+
+  where
+    awardWinner (p, n) =
+      do
+        st <- getState
+        update (gainPoints p n st)
+        doLog [LogPlayer p, LogText "won majority in region"
+              , LogText (Text.pack (show rid) <> ",")
+              , LogText "gained", LogPoints n]
+
+doClaimMonument :: PlayerId -> Interact ()
+doClaimMonument pid =
+  do
+    board <- getsState stateBoard
+    let (hasNeutral, neutralAdj, enemyAdj) =
+          foldl' (classify board) (False, [], [])
+                                  (Map.toList (boardHexes board))
+
+        targets
+          | hasNeutral = neutralAdj
+          | otherwise  = enemyAdj
+
+    case targets of
+      [] -> pure ()
+      _  ->
+        do
+          choice <-
+            choose pid (questionFor pid "Select a monument to claim")
+              [ (ChooseHex loc, Text.pack (show loc)) | loc <- targets ]
+          case choice of
+            ChooseHex loc ->
+              do
+                updateBoard (claimMonument pid loc)
+                doLog [LogPlayer pid, LogText "claimed a monument"]
+            _ -> pure ()
+  where
+  classify board (!neutral, nAdj, eAdj) (loc, hex) =
+    let ps       = hexPieces hex
+        isNeutMon = any isNeutral ps
+        isEnemMon = any isEnemy ps
+        adjToUs   = any (hasOurFigure board loc) allDirections
+    in ( neutral || isNeutMon
+       , if isNeutMon && adjToUs then loc : nAdj else nAdj
+       , if isEnemMon && adjToUs then loc : eAdj else eAdj
+       )
+
+  hasOurFigure board loc dir =
+    let neighbor = flocAdvance loc dir 1
+    in  not (Map.member (flocEdge loc dir) (boardEdges board))
+        && case Map.lookup neighbor (boardHexes board) of
+             Just hex -> any isOurs (hexPieces hex)
+             Nothing  -> False
+
+  isOurs (PlayerPiece p _) = pid == p
+  isOurs _                 = False
+
+  isNeutral (Structure Nothing _) = True
+  isNeutral _                     = False
+
+  isEnemy (Structure (Just p) _) = p /= pid
+  isEnemy _                      = False
