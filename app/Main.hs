@@ -5,7 +5,7 @@ import App.ActionType (initActionSelector)
 import App.KOI
 import App.State
 import App.PlayerState
-import App.Board (parseBoard, countSoldiersOnBoard, countStructuresOnBoard, countPlayerStructures)
+import App.Board (parseBoard, countBoardPieces, BoardCounts(..))
 import App.Cards (Card(..))
 import App.Powers (Power(..))
 import qualified Data.Aeson as JS
@@ -42,10 +42,11 @@ main = startApp App
           Left err -> error ("Failed to parse board: " ++ err)
           Right b -> pure b
 
-      -- Count pieces on board
-      let soldiersOnBoard = countSoldiersOnBoard board
-          structuresOnBoard = countStructuresOnBoard board
-          playerStructures = countPlayerStructures board
+      let BoardCounts
+            { bcSoldiersPerPlayer   = soldiersOnBoard
+            , bcStructuresPerType   = structuresOnBoard
+            , bcStructuresPerPlayer = playerStructures
+            } = countBoardPieces board
           numPlayers = length ps
 
       pure State

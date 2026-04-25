@@ -257,32 +257,34 @@ computeRegions hexes edges = findRegions nonWaterPositions barriers
       , not (Set.member neighbor nonWaterPositions)
       ]
 
--- | Count the number of soldiers on the board for each player
-countSoldiersOnBoard :: Board -> Map PlayerId Int
-countSoldiersOnBoard board =
-  Map.fromListWith (+)
-    [ (playerId, 1)
-    | hex <- Map.elems (boardHexes board)
-    , PlayerPiece playerId Soldier <- hexPieces hex
-    ]
+data BoardCounts = BoardCounts
+  { bcSoldiersPerPlayer   :: !(Map PlayerId Int)
+  , bcStructuresPerType   :: !(Map StructureType Int)
+  , bcStructuresPerPlayer :: !(Map PlayerId Int)
+  }
 
--- | Count the number of each structure type on the board
-countStructuresOnBoard :: Board -> Map StructureType Int
-countStructuresOnBoard board =
-  Map.fromListWith (+)
-    [ (stype, 1)
-    | hex <- Map.elems (boardHexes board)
-    , Structure _ stype <- hexPieces hex
-    ]
-
--- | Count structures owned by each player on the board
-countPlayerStructures :: Board -> Map PlayerId Int
-countPlayerStructures board =
-  Map.fromListWith (+)
-    [ (pid, 1)
-    | hex <- Map.elems (boardHexes board)
-    , Structure (Just pid) _ <- hexPieces hex
-    ]
+countBoardPieces :: Board -> BoardCounts
+countBoardPieces board =
+  foldl' countHex (BoardCounts Map.empty Map.empty Map.empty)
+                  (Map.elems (boardHexes board))
+  where
+    countHex counts hex = foldl' countPiece counts (hexPieces hex)
+    countPiece counts piece =
+      case piece of
+        PlayerPiece pid Soldier ->
+          counts { bcSoldiersPerPlayer =
+                     Map.insertWith (+) pid 1 (bcSoldiersPerPlayer counts) }
+        Structure mbOwner stype ->
+          let c1 = counts { bcStructuresPerType =
+                              Map.insertWith (+) stype 1
+                                (bcStructuresPerType counts) }
+          in case mbOwner of
+               Just pid ->
+                 c1 { bcStructuresPerPlayer =
+                        Map.insertWith (+) pid 1
+                          (bcStructuresPerPlayer c1) }
+               Nothing -> c1
+        _ -> counts
 
 -- | Find all hexagon locations that contain at least one player piece belonging to the given player.
 playerPieceLocations :: PlayerId -> Board -> [FLoc]
