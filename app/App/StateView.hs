@@ -9,7 +9,17 @@ import App.State
 newtype StateView = StateView State
 
 getStateView :: PlayerId -> State -> StateView
-getStateView _pid = StateView
+getStateView pid st =
+  case Map.lookup (playerStateId st pid) (statePlayers st) of
+    Just ps -> StateView st { statePlayers = addFollower (Map.insert pid ps (statePlayers st)) }
+    Nothing -> StateView st
+  where
+  addFollower players =
+    case playerMerged st of
+      Just m
+        | Just ps <- Map.lookup (playerLead m) players ->
+            Map.insert (playerFollow m) ps players
+      _ -> players
 
 instance JS.ToJSON StateView where
   toJSON (StateView st) = JS.object

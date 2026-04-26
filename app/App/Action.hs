@@ -5,7 +5,6 @@ import Data.Text qualified as Text
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
-import Data.Set (Set)
 import Control.Monad (unless)
 import Data.List (foldl', sortBy)
 import Data.Ord (comparing)
@@ -13,18 +12,15 @@ import Data.Ord (comparing)
 import KOI.Basics (PlayerId(..), WithPlayer(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel, isTestAction)
 import App.KOI
-import App.State (State(..), decrementAction, gainFollowers, gainPoints, loseFollowers, summonSoldier, playCardForPlayer)
-import qualified App.State as State
-import App.LogItem (LogItem(..), LogWord(..))
-import App.Piece (Piece(..), StructureType(..), pieceOwner)
+import App.State (State(..), Merged(..), decrementAction, gainFollowers, gainPoints, loseFollowers, summonSoldier, playCardForPlayer, playerStateId)
+import App.LogItem (LogWord(..))
+import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), pieceOwner)
 import App.Board
   ( Board(..)
-  , EdgeType(..)
   , Hex(..)
   , RegionId
   , claimMonument
   , computeFollowersGain
-  , hexRegion
   , movePiece
   , playerPieceLocations
   , regionPieces
@@ -33,12 +29,13 @@ import App.Board
   )
 import App.Input (Input(..), normalizeInput)
 import App.PlayerState (PlayerState(..), adjustBuildLimit)
+import App.ActionsBasic
 import App.SplitSelection qualified as SplitSelection
-import Coord (ELoc, FLoc, findRegions, allDirections, flocAdvance, flocEdge)
+import Coord (allDirections, flocAdvance, flocEdge)
 
 
-doAction :: PlayerId -> Interact ()
-doAction pid =
+doAction :: PlayerId -> Int -> Int -> Interact ()
+doAction pid current total =
   do
     st <- getState
     let availableActions =
@@ -46,13 +43,15 @@ doAction pid =
           | (act, amount) <- Map.toList (stateActions st)
           , isTestAction act || actionAvailable amount > 0
           ]
+        label = "Choose an action (" <> Text.pack (show current)
+             <> "/" <> Text.pack (show total) <> ")"
     case availableActions of
       [] -> pure ()
       _ ->
         do
           doStartLogGroup
           choice <-
-            choose pid (questionFor pid "Choose an action")
+            choose pid (questionFor pid label)
               [ (ChooseAction act, actionHelp st pid act)
               | (act, _) <- availableActions
               ]
@@ -71,10 +70,9 @@ runAction pid act =
     SummonFigure -> doSummon pid
     GainFollowers -> doGainFollowers pid
     GainPower -> pure ()
-    TestSplitRegion -> doSpliltRegion pid
+    TestSplitRegion -> SplitSelection.doSpliltRegion pid
     TestBid -> doTestBid
     TestPlayCards -> doTestPlayCards
-    TestGainPoints -> doTestGainPoints pid
     TestMonumentMajority -> doTestMonumentMajority pid
     TestClaimMonument -> doClaimMonument pid
 
@@ -91,12 +89,13 @@ actionHelp st pid act =
 doMove :: PlayerId -> Interact ()
 doMove pid =
   do
-    board <- stateBoard <$> getState
+    st <- getState
+    let lid = playerStateId st pid
+    loop lid (Set.fromList (playerPieceLocations lid (stateBoard st)))
     doLog [LogPlayer pid, LogText "moved figures"]
-    loop (Set.fromList (playerPieceLocations pid board))
   where
-  loop available | Set.null available = pure ()
-  loop available =
+  loop _ available | Set.null available = pure ()
+  loop lid available =
     do
       board <- getsState stateBoard
       let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> Text.pack (show loc))
@@ -109,7 +108,7 @@ doMove pid =
           do
             let targets = validMoveTargets board loc
             if null targets
-              then loop (Set.delete loc available)
+              then loop lid (Set.delete loc available)
               else
                 do
                   targetChoice <-
@@ -118,20 +117,21 @@ doMove pid =
                   case targetChoice of
                     ChooseHex to ->
                       do
-                        updateBoard (movePiece pid loc to)
-                        loop (Set.delete loc available)
-                    _ -> loop available
+                        updateBoard (movePiece lid loc to)
+                        loop lid (Set.delete loc available)
+                    _ -> loop lid available
         _ -> pure ()
 
 doSummon :: PlayerId -> Interact ()
 doSummon pid =
   do
     st <- getState
-    case Map.lookup pid (statePlayers st) of
+    let lid = playerStateId st pid
+    case Map.lookup lid (statePlayers st) of
       Just playerState
         | playerSoldiers playerState > 0 ->
             let board = stateBoard st
-                targets = validSummonTargets pid board
+                targets = validSummonTargets lid board
             in
               case targets of
                 [] -> pure ()
@@ -143,7 +143,8 @@ doSummon pid =
                     case choice of
                       ChooseHex loc ->
                         do
-                          update (summonSoldier pid loc st)
+                          st' <- getState
+                          update (summonSoldier lid loc st')
                           doLog [LogPlayer pid, LogText "summoned a soldier"]
                       _ -> pure ()
       _ -> pure ()
@@ -152,169 +153,75 @@ doGainFollowers :: PlayerId -> Interact ()
 doGainFollowers pid =
   do
     st <- getState
-    let amount = computeFollowersGain (stateBoard st) pid
-    update (gainFollowers pid amount st)
+    let lid = playerStateId st pid
+    let amount = computeFollowersGain (stateBoard st) lid
+    update (gainFollowers lid amount st)
     doLog [LogPlayer pid, LogText "gained", LogFollowers amount]
 
-updateBoard :: (Board -> Board) -> Interact ()
-updateBoard f = update . updateB f =<< getState
-  where
-  updateB f' s = s { stateBoard = f' (stateBoard s) }
-
-sync :: Interact ()
-sync = do
-  st <- getState
-  update st
-
-doLog :: [LogWord] -> Interact ()
-doLog ws = do
-  st <- getState
-  update (State.addLogEntry ws st)
-
-doLogMultiple :: [[LogWord]] -> Interact ()
-doLogMultiple wss = do
-  st <- getState
-  update (State.addLogEntries wss st)
-
-doStartLogGroup :: Interact ()
-doStartLogGroup = do
-  st <- getState
-  update (State.addLogItems [LogGroup []] st)
-
-doSpliltRegion :: PlayerId -> Interact ()
-doSpliltRegion pid =
-  do
-    st0 <- getState
-    update (State.clearSplitSelection st0)
-
-    split <- SplitSelection.doSpliltRegion pid
-
-    st1 <- getState
-    update (State.clearSplitSelection st1)
-
-    case split of
-      Nothing -> pure ()
-      Just (rid, selectedEdges) ->
-        do
-          updateBoard (applySelectedSplit rid selectedEdges)
-          doLog [LogPlayer pid, LogText ("split region " <> Text.pack (show rid))]
-
--- | Apply a chosen split to the board by replacing the original region with the
--- two resulting subregions and adding the separating edges as camel borders.
-applySelectedSplit :: RegionId -> Set ELoc -> Board -> Board
-applySelectedSplit oldRegionId selectedEdges board =
-  case Map.lookup oldRegionId (boardRegions board) of
-    Nothing ->
-      error
-        ( "applySelectedSplit: selected region "
-        ++ show oldRegionId
-        ++ " no longer exists"
-        )
-    Just wholeRegion ->
-      case splitRegionByEdges wholeRegion selectedEdges of
-        Nothing ->
-          error
-            ( "applySelectedSplit: selected edges did not split region "
-            ++ show oldRegionId
-            ++ " into exactly two subregions: "
-            ++ show (Set.toList selectedEdges)
-            )
-        Just (regionA, regionB) ->
-          board
-            { boardRegions = regions2
-            , boardEdges = edges2
-            , boardNextRegionId = newRegionId + 1
-            }
-          where
-          newRegionId = boardNextRegionId board
-          regions1 = Map.delete oldRegionId (boardRegions board)
-          regions2 =
-            Map.insert newRegionId regionB
-              (Map.insert oldRegionId regionA regions1)
-          edges2 =
-            foldl'
-              (\acc edge -> Map.insert edge CamelsEdge acc)
-              (boardEdges board)
-              (Set.toList selectedEdges)
-
-splitRegionByEdges :: Set FLoc -> Set ELoc -> Maybe (Set FLoc, Set FLoc)
-splitRegionByEdges wholeRegion separatorEdges =
-  case Map.elems (findRegions wholeRegion separatorEdges) of
-    [regionA, regionB] -> Just (regionA, regionB)
-    _ -> Nothing
 
 allSame :: Eq a => [a] -> Bool
 allSame [] = True
 allSame (x:xs) = all (== x) xs
 
-{- | Ask multiple players questions and wait for all of them to respond.
-Returns responses grouped first by team, then by player.
-Players on the same team must reach agreement---they all need to select the same answer.
-Uses 'inUndoGroup' so each player can undo their response even after others respond. -}
 askInputsAll ::
-  ([PlayerId] -> [PlayerId] -> Text)
-  {- ^ Description of what we are asking.
-       First argument: players who have already responded.
-       Second argument: players who haven't responded yet. -} ->
-  [(PlayerId, [(Input, Text)])]
-  {- ^ For each team, selections by each player -} ->
-  Interact (Map Int (Map PlayerId Input))
+  ([PlayerId] -> [PlayerId] -> Text) ->
+  [(PlayerId, [(Input, Text)])] ->
+  Interact (Map PlayerId Input)
 askInputsAll mkQuestion playerOpts =
   inUndoGroup
   do
     st <- getState
-    let playerTeams = Map.fromList [ (pid, playerTeam ps)
-                                   | (pid, ps) <- Map.toList (statePlayers st) ]
+    let merged = playerMerged st
         allChoices = Map.fromList playerOpts
-    go playerTeams Map.empty allChoices allChoices
+    go merged Map.empty allChoices allChoices
   where
-  go teams teamResponses remaining allChoices
-    | Map.null remaining = pure teamResponses
+  go merged responses remaining allChoices
+    | Map.null remaining = pure (mergedResponses merged responses)
     | otherwise =
       askInputsWith q
-        [ (pid :-> annotateChoice myTeammateResponses choice, help,
+        [ (pid :-> annotateChoice teammateResponse choice, help,
            \response ->
-             let team = Map.findWithDefault 0 pid teams
-                 -- Check if this response conflicts with teammates
-                 conflictingPids =
-                   case Map.lookup team teamResponses of
-                     Nothing -> []
-                     Just teamMap ->
-                       [ tpid
-                       | (tpid, tresponse) <- Map.toList teamMap
-                       , normalizeInput response /= normalizeInput tresponse
-                       ]
-                 -- Remove conflicting teammates' responses and return them to remaining
-                 newTeamResponses =
-                   case Map.lookup team teamResponses of
-                     Nothing -> Map.insert team (Map.singleton pid response) teamResponses
-                     Just teamMap ->
-                       let cleanedTeamMap = foldl' (flip Map.delete) teamMap conflictingPids
-                           updatedTeamMap = Map.insert pid response cleanedTeamMap
-                       in Map.insert team updatedTeamMap teamResponses
+             let conflictingPid =
+                   case myMate of
+                     Just other
+                       | Just prev <- Map.lookup other responses
+                       , normalizeInput response /= normalizeInput prev
+                       -> Just other
+                     _ -> Nothing
+                 newResponses =
+                   maybe id Map.delete conflictingPid
+                   (Map.insert pid response responses)
                  newRemaining =
-                   foldl' (\acc cpid -> Map.insert cpid (allChoices Map.! cpid) acc)
-                          (Map.delete pid remaining)
-                          conflictingPids
-             in go teams newTeamResponses newRemaining allChoices)
+                   maybe id (\cpid acc -> Map.insert cpid (allChoices Map.! cpid) acc)
+                            conflictingPid
+                            (Map.delete pid remaining)
+             in go merged newResponses newRemaining allChoices)
         | (pid, choices) <- Map.toList remaining
-        , let myTeammateResponses =
+        , let myMate = mate merged pid
+              teammateResponse =
                 [ resp
-                | Just myTeam   <- [Map.lookup pid teams]
-                , Just teamMap  <- [Map.lookup myTeam teamResponses]
-                , (_, resp)     <- Map.toList teamMap
+                | Just other <- [myMate]
+                , Just resp  <- [Map.lookup other responses]
                 ]
         , (choice, help) <- choices
         ]
       where
-      responded    = [ pid | teamMap <- Map.elems teamResponses, pid <- Map.keys teamMap ]
+      responded    = Map.keys responses
       notResponded = Map.keys remaining
       q = mkQuestion responded notResponded
-      
+
+  mate (Just m) pid
+    | pid == playerLead m   = Just (playerFollow m)
+    | pid == playerFollow m = Just (playerLead m)
+  mate _ _                  = Nothing
+
+  mergedResponses (Just m) responses = Map.delete (playerFollow m) responses
+  mergedResponses Nothing responses = responses
+
   annotateChoice teammates choice =
     case choice of
       AskBid bid _   -> AskBid bid [ b | AskBid b _ <- teammates ]
-      ChooseCard c _ -> ChooseCard c (or [ c == c' | ChooseCard c' _ <- teammates ])  
+      ChooseCard c _ -> ChooseCard c (or [ c == c' | ChooseCard c' _ <- teammates ])
       other -> other
 
 doTestBid :: Interact ()
@@ -341,10 +248,9 @@ doTestBid =
           case input of
             AskBid bid _ -> loseFollowers rpid bid state
             _ -> state
-        allBids = [ (pid, input) | teamMap <- Map.elems teamBids, (pid, input) <- Map.toList teamMap ]
+        allBids = Map.toList teamBids
     update (foldl' processBid st' allBids)
 
-    -- Log results after all bids are revealed
     let bidLogs = [ [LogPlayer rpid, LogText "bid", LogFollowers bid]
                   | (rpid, AskBid bid _) <- allBids ]
     doLogMultiple bidLogs
@@ -372,7 +278,7 @@ doTestPlayCards =
           case input of
             ChooseCard card _ -> playCardForPlayer rpid card state
             _ -> state
-        allCards = [ (pid, input) | teamMap <- Map.elems teamCards, (pid, input) <- Map.toList teamMap ]
+        allCards = Map.toList teamCards
 
     update (foldl' playCard st' allCards)
 
@@ -381,49 +287,14 @@ doTestPlayCards =
                    | (rpid, ChooseCard card _) <- allCards ]
     doLogMultiple cardLogs
 
-doTestGainPoints :: PlayerId -> Interact ()
-doTestGainPoints pid =
-  do
-    choice <- choose pid (questionFor pid "How many points?")
-                [(AskBid 10 [], "Gain between 0 and 10 points")]
-    case choice of
-      AskBid bid _ ->
-        do
-          st <- getState
-          update (gainPoints pid bid st)
-          doLog [LogPlayer pid, LogText "gained", LogPoints bid]
-      _ -> pure ()
-
 doTestMonumentMajority :: PlayerId -> Interact ()
 doTestMonumentMajority pid =
   do
     rid <- chooseRegion pid "Select a region for monument majority"
     scoreRegionMajority rid
 
--- | Let a player pick a region by clicking any hex that belongs to it.
-chooseRegion :: PlayerId -> Text -> Interact RegionId
-chooseRegion pid prompt =
-  do
-    board <- getsState stateBoard
-    let hexChoices =
-          [ (loc, rid)
-          | (rid, locs) <- Map.toList (boardRegions board)
-          , loc <- Set.toList locs
-          ]
-    choice <-
-      choose pid (questionFor pid prompt)
-        [ (ChooseHex loc, "Region " <> Text.pack (show rid))
-        | (loc, rid) <- hexChoices
-        ]
-    case choice of
-      ChooseHex loc ->
-        do
-          board' <- getsState stateBoard
-          case hexRegion board' loc of
-            Just rid -> pure rid
-            Nothing  -> chooseRegion pid prompt
-      _ -> chooseRegion pid prompt
-
+-- No need to worry about teams, because followers shouldn't have
+-- pieces on the board
 scoreRegionMajority :: RegionId -> Interact ()
 scoreRegionMajority rid =
   do
@@ -487,15 +358,16 @@ doClaimMonument :: PlayerId -> Interact ()
 doClaimMonument pid =
   do
     st <- getState
-    let board = stateBoard st
+    let lid = playerStateId st pid
+        board = stateBoard st
         hasBuildLimit =
-          case Map.lookup pid (statePlayers st) of
+          case Map.lookup lid (statePlayers st) of
             Just ps -> playerBuildLimit ps > 0
             Nothing -> False
 
         (hasNeutral, neutralAdj, enemyAdj) =
-          foldl' (classify board) (False, [], [])
-                                  (Map.toList (boardHexes board))
+          foldl' (classify lid board) (False, [], [])
+                                      (Map.toList (boardHexes board))
 
         targets
           | not hasBuildLimit = []
@@ -512,41 +384,104 @@ doClaimMonument pid =
           case choice of
             ChooseHex loc ->
               do
-                let (prevOwner, board') = claimMonument pid loc board
+                st' <- getState
+                let board1 = stateBoard st'
+                    (prevOwner, board') = claimMonument lid loc board1
                     adjustPlayers =
-                      Map.adjust (adjustBuildLimit (-1)) pid
+                      Map.adjust (adjustBuildLimit (-1)) lid
                       . case prevOwner of
                           Just prev -> Map.adjust (adjustBuildLimit 1) prev
                           Nothing   -> id
-                update st
+                update st'
                   { stateBoard = board'
-                  , statePlayers = adjustPlayers (statePlayers st)
+                  , statePlayers = adjustPlayers (statePlayers st')
                   }
                 doLog [LogPlayer pid, LogText "claimed a monument"]
             _ -> pure ()
   where
-  classify board (!neutral, nAdj, eAdj) (loc, hex) =
+  classify lid board (!neutral, nAdj, eAdj) (loc, hex) =
     let ps       = hexPieces hex
         isNeutMon = any isNeutral ps
-        isEnemMon = any isEnemy ps
-        adjToUs   = any (hasOurFigure board loc) allDirections
+        isEnemMon = any (isEnemy lid) ps
+        adjToUs   = any (hasOurFigure lid board loc) allDirections
     in ( neutral || isNeutMon
        , if isNeutMon && adjToUs then loc : nAdj else nAdj
        , if isEnemMon && adjToUs then loc : eAdj else eAdj
        )
 
-  hasOurFigure board loc dir =
+  hasOurFigure lid board loc dir =
     let neighbor = flocAdvance loc dir 1
     in  not (Map.member (flocEdge loc dir) (boardEdges board))
         && case Map.lookup neighbor (boardHexes board) of
-             Just hex -> any isOurs (hexPieces hex)
+             Just hex -> any (isOurs lid) (hexPieces hex)
              Nothing  -> False
 
-  isOurs (PlayerPiece p _) = pid == p
-  isOurs _                 = False
+  isOurs lid (PlayerPiece p _) = lid == p
+  isOurs _ _                   = False
 
   isNeutral (Structure Nothing _) = True
   isNeutral _                     = False
 
-  isEnemy (Structure (Just p) _) = p /= pid
-  isEnemy _                      = False
+  isEnemy lid (Structure (Just p) _) = p /= lid
+  isEnemy _ _                        = False
+
+doMerge :: Interact ()
+doMerge =
+  do
+    st <- getState
+    let sorted = sortBy (comparing (playerPoints . snd))
+                        (Map.toList (statePlayers st))
+    case sorted of
+      (follow, followSt) : (lead, leadSt) : _ ->
+        do
+          let board          = stateBoard st
+              (board', returned) = mergePieces follow lead board
+              newLeadSt      = leadSt
+                { playerPoints    = playerPoints followSt
+                , playerFollowers = playerFollowers leadSt
+                                  + playerFollowers followSt
+                , playerActions   = 1
+                }
+              (fp, ft)       = playerPoints followSt
+              adjustOther ps
+                | (px, py) <- playerPoints ps, px == fp, py > ft =
+                    ps { playerPoints = (px, py - 1) }
+                | otherwise = ps
+              newStructures  = Map.unionWith (+) (stateStructures st) returned
+              newPlayers     = Map.delete follow
+                             $ Map.insert lead newLeadSt
+                             $ Map.map adjustOther (statePlayers st)
+          update st
+            { stateBoard      = board'
+            , statePlayers    = newPlayers
+            , stateStructures = newStructures
+            , playerMerged    = Just Merged
+                { playerLead   = lead
+                , playerFollow = follow
+                }
+            }
+      _ -> pure ()
+
+mergePieces ::
+  PlayerId -> PlayerId -> Board -> (Board, Map StructureType Int)
+mergePieces follow lead board =
+  ( board { boardHexes = newHexes }
+  , returned
+  )
+  where
+  (returned, newHexes) =
+    Map.mapAccum processHex Map.empty (boardHexes board)
+
+  processHex acc hex =
+    let (structs, pieces') = foldl' step (acc, []) (hexPieces hex)
+    in (structs, hex { hexPieces = reverse pieces' })
+
+  step (structs, acc) piece =
+    case piece of
+      Structure (Just p) stype | p == follow ->
+        (Map.insertWith (+) stype 1 structs, acc)
+      PlayerPiece p God     | p == follow -> (structs, acc)
+      PlayerPiece p Soldier | p == follow -> (structs, acc)
+      PlayerPiece p gt@(Guardian _) | p == follow ->
+        (structs, PlayerPiece lead gt : acc)
+      _ -> (structs, piece : acc)

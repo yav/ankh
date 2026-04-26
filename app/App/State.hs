@@ -31,6 +31,12 @@ emptySplitSelectionState =
     , splitSelectionInvalid = False
     }
 
+data Merged = Merged
+  { playerLead   :: PlayerId
+  , playerFollow :: PlayerId
+  }
+  deriving (Read, Show)
+
 data State = State
   { stateBoard   :: Board
   , statePlayers :: Map.Map PlayerId PlayerState
@@ -38,8 +44,17 @@ data State = State
   , stateStructures :: Map.Map StructureType Int
   , stateSplitSelection :: SplitSelectionState
   , stateLog     :: [LogItem]
+  , playerMerged :: Maybe Merged
+  , playerOrder  :: [PlayerId]
+  , remainingActions :: Int
   }
   deriving (Read, Show)
+
+playerStateId :: State -> PlayerId -> PlayerId
+playerStateId st pid =
+  case playerMerged st of
+    Just m | pid == playerFollow m -> playerLead m
+    _ -> pid
 
 stateIsFinal :: State -> Bool
 stateIsFinal _ = False

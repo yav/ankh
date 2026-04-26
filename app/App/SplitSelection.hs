@@ -2,6 +2,7 @@ module App.SplitSelection
   ( doSpliltRegion
   ) where
 
+import Data.List (foldl')
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
@@ -11,12 +12,15 @@ import KOI.Basics (PlayerId)
 import Coord (DELoc, ELoc, FLoc)
 import Coord qualified
 
+import App.ActionsBasic
 import App.Board
   ( Board(..)
+  , EdgeType(..)
   , RegionId
   )
 import App.Input (Input(..))
 import App.KOI
+import App.LogItem (LogWord(..))
 import App.State (State(..))
 import qualified App.State as State
 
@@ -24,8 +28,26 @@ import qualified App.State as State
 -- The path must start on the region border, stay inside the region, and reach
 -- the opposite border within at most 6 edges. The split is valid only when it
 -- divides the region into two subregions of size at least 6.
-doSpliltRegion :: PlayerId -> Interact (Maybe (RegionId, Set ELoc))
+doSpliltRegion :: PlayerId -> Interact ()
 doSpliltRegion pid =
+  do
+    st0 <- getState
+    update (State.clearSplitSelection st0)
+
+    split <- selectSplit pid
+
+    st1 <- getState
+    update (State.clearSplitSelection st1)
+
+    case split of
+      Nothing -> pure ()
+      Just (rid, selectedEdges) ->
+        do
+          updateBoard (applySelectedSplit rid selectedEdges)
+          doLog [LogPlayer pid, LogText ("split region " <> T.pack (show rid))]
+
+selectSplit :: PlayerId -> Interact (Maybe (RegionId, Set ELoc))
+selectSplit pid =
   do
     board <- getsState stateBoard
     let eligibleRegions =
@@ -194,3 +216,45 @@ regionInteriorEdges wholeRegion =
     , let edge = Coord.flocEdge loc dir
     , Coord.isInteriorEdge wholeRegion edge
     ]
+
+applySelectedSplit :: RegionId -> Set ELoc -> Board -> Board
+applySelectedSplit oldRegionId selectedEdges board =
+  case Map.lookup oldRegionId (boardRegions board) of
+    Nothing ->
+      error
+        ( "applySelectedSplit: selected region "
+        ++ show oldRegionId
+        ++ " no longer exists"
+        )
+    Just wholeRegion ->
+      case splitRegionByEdges wholeRegion selectedEdges of
+        Nothing ->
+          error
+            ( "applySelectedSplit: selected edges did not split region "
+            ++ show oldRegionId
+            ++ " into exactly two subregions: "
+            ++ show (Set.toList selectedEdges)
+            )
+        Just (regionA, regionB) ->
+          board
+            { boardRegions = regions2
+            , boardEdges = edges2
+            , boardNextRegionId = newRegionId + 1
+            }
+          where
+          newRegionId = boardNextRegionId board
+          regions1 = Map.delete oldRegionId (boardRegions board)
+          regions2 =
+            Map.insert newRegionId regionB
+              (Map.insert oldRegionId regionA regions1)
+          edges2 =
+            foldl'
+              (\acc edge -> Map.insert edge CamelsEdge acc)
+              (boardEdges board)
+              (Set.toList selectedEdges)
+
+splitRegionByEdges :: Set FLoc -> Set ELoc -> Maybe (Set FLoc, Set FLoc)
+splitRegionByEdges wholeRegion separatorEdges =
+  case Map.elems (Coord.findRegions wholeRegion separatorEdges) of
+    [regionA, regionB] -> Just (regionA, regionB)
+    _ -> Nothing

@@ -14,7 +14,6 @@ data Action
   | TestSplitRegion
   | TestBid
   | TestPlayCards
-  | TestGainPoints
   | TestMonumentMajority
   | TestClaimMonument
   deriving (Eq, Ord, Enum, Bounded, Read, Show)
@@ -48,7 +47,6 @@ isTestAction act =
     TestSplitRegion      -> True
     TestBid              -> True
     TestPlayCards        -> True
-    TestGainPoints       -> True
     TestMonumentMajority -> True
     TestClaimMonument    -> True
     _                    -> False
@@ -64,7 +62,6 @@ actionLabel act =
     TestSplitRegion -> "Test Split"
     TestBid -> "Test Bid"
     TestPlayCards -> "Test Play Cards"
-    TestGainPoints -> "Test Gain Points"
     TestMonumentMajority -> "Test Majority"
     TestClaimMonument -> "Test Claim"
 
@@ -78,7 +75,6 @@ instance ToJSON Action where
       TestSplitRegion   -> "testSplitRegion"
       TestBid           -> "testBid"
       TestPlayCards     -> "testPlayCards"
-      TestGainPoints    -> "testGainPoints"
       TestMonumentMajority -> "testMonumentMajority"
       TestClaimMonument -> "testClaimMonument"
 
@@ -92,7 +88,6 @@ instance FromJSON Action where
       "testSplitRegion" -> pure TestSplitRegion
       "testBid" -> pure TestBid
       "testPlayCards" -> pure TestPlayCards
-      "testGainPoints" -> pure TestGainPoints
       "testMonumentMajority" -> pure TestMonumentMajority
       "testClaimMonument" -> pure TestClaimMonument
       _ -> fail ("Unknown action: " ++ show txt)

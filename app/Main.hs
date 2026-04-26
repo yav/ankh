@@ -1,6 +1,7 @@
 module Main where
 
-import App.Action (doAction)
+import KOI.Basics(PlayerId)
+import App.Action (doAction, doMerge)
 import App.ActionType (initActionSelector)
 import App.KOI
 import App.State
@@ -61,7 +62,6 @@ main = startApp App
                 , playerPowers = Set.fromList [Commanding, Inspiring]
                 , playerHand = [BuildMonument, Chariots, CycleOfMaat, Drought]
                 , playerPlayed = [PlagueOfLocusts, Flood, Miracle]
-                , playerTeam = if i < 2 then 0 else i - 1
                 })
             | (i, p) <- zip [0..] ps
             ]
@@ -72,13 +72,36 @@ main = startApp App
                 structuresOnBoard
           , stateSplitSelection = emptySplitSelectionState
           , stateLog = []
+          , playerMerged = Nothing
+          , playerOrder = ps
+          , remainingActions = 0
         }
-  , appStart = gameLoop
+  , appStart = do doMerge; gameLoop
   }
 
 gameLoop :: Interact ()
 gameLoop =
   do
-    s <- getState
-    mapM_ doAction (Map.keys (statePlayers s))
-    gameLoop
+    st <- getState
+    case playerOrder st of
+      [] -> gameLoop
+      pid : rest ->
+        do
+          let total = case playerMerged st of
+                Just m | pid == playerLead m   -> 1
+                       | pid == playerFollow m -> 1
+                _ -> 2
+          update st { playerOrder = rest ++ [pid], remainingActions = total }
+          playerTurn total pid
+
+playerTurn :: Int -> PlayerId -> Interact ()
+playerTurn total pid =
+  do
+    st <- getState
+    if remainingActions st <= 0
+      then gameLoop
+      else do
+        let current = total - remainingActions st + 1
+        update st { remainingActions = remainingActions st - 1 }
+        doAction pid current total
+        playerTurn total pid

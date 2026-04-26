@@ -31,6 +31,7 @@ executable ankh
                       App.Cards,
                       App.ActionType,
                       App.Action,
+                      App.ActionsBasic,
                       App.SplitSelection,
                       App.Event,
                       App.Conflict,

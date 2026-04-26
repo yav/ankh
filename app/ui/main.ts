@@ -30,7 +30,7 @@ type GameState = {
 export let conn: Connection<Input>;
 let gui: GUI;
 
-const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid", "testPlayCards", "testGainPoints", "testMonumentMajority", "testClaimMonument"]
+const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid", "testPlayCards", "testMonumentMajority", "testClaimMonument"]
 
 function syncRegionsToggle(): void {
   const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
