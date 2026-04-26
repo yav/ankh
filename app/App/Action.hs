@@ -9,7 +9,7 @@ import Control.Monad (unless)
 import Data.List (foldl', sortBy)
 import Data.Ord (comparing)
 
-import KOI.Basics (PlayerId(..), WithPlayer(..))
+import KOI.Basics (PlayerId(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel, isTestAction)
 import App.KOI
 import App.State (State(..), Merged(..), decrementAction, gainFollowers, gainPoints, loseFollowers, summonSoldier, playCardForPlayer, playerStateId)
@@ -27,7 +27,7 @@ import App.Board
   , validMoveTargets
   , validSummonTargets
   )
-import App.Input (Input(..), normalizeInput)
+import App.Input (Input(..))
 import App.PlayerState (PlayerState(..), adjustBuildLimit)
 import App.ActionsBasic
 import App.SplitSelection qualified as SplitSelection
@@ -159,80 +159,22 @@ doGainFollowers pid =
     doLog [LogPlayer pid, LogText "gained", LogFollowers amount]
 
 
-allSame :: Eq a => [a] -> Bool
-allSame [] = True
-allSame (x:xs) = all (== x) xs
-
-askInputsAll ::
-  ([PlayerId] -> [PlayerId] -> Text) ->
-  [(PlayerId, [(Input, Text)])] ->
-  Interact (Map PlayerId Input)
-askInputsAll mkQuestion playerOpts =
-  inUndoGroup
-  do
-    st <- getState
-    let merged = playerMerged st
-        allChoices = Map.fromList playerOpts
-    go merged Map.empty allChoices allChoices
-  where
-  go merged responses remaining allChoices
-    | Map.null remaining = pure (mergedResponses merged responses)
-    | otherwise =
-      askInputsWith q
-        [ (pid :-> annotateChoice teammateResponse choice, help,
-           \response ->
-             let conflictingPid =
-                   case myMate of
-                     Just other
-                       | Just prev <- Map.lookup other responses
-                       , normalizeInput response /= normalizeInput prev
-                       -> Just other
-                     _ -> Nothing
-                 newResponses =
-                   maybe id Map.delete conflictingPid
-                   (Map.insert pid response responses)
-                 newRemaining =
-                   maybe id (\cpid acc -> Map.insert cpid (allChoices Map.! cpid) acc)
-                            conflictingPid
-                            (Map.delete pid remaining)
-             in go merged newResponses newRemaining allChoices)
-        | (pid, choices) <- Map.toList remaining
-        , let myMate = mate merged pid
-              teammateResponse =
-                [ resp
-                | Just other <- [myMate]
-                , Just resp  <- [Map.lookup other responses]
-                ]
-        , (choice, help) <- choices
-        ]
-      where
-      responded    = Map.keys responses
-      notResponded = Map.keys remaining
-      q = mkQuestion responded notResponded
-
-  mate (Just m) pid
-    | pid == playerLead m   = Just (playerFollow m)
-    | pid == playerFollow m = Just (playerLead m)
-  mate _ _                  = Nothing
-
-  mergedResponses (Just m) responses = Map.delete (playerFollow m) responses
-  mergedResponses Nothing responses = responses
-
-  annotateChoice teammates choice =
-    case choice of
-      AskBid bid _   -> AskBid bid [ b | AskBid b _ <- teammates ]
-      ChooseCard c _ -> ChooseCard c (or [ c == c' | ChooseCard c' _ <- teammates ])
-      other -> other
-
 doTestBid :: Interact ()
 doTestBid =
   do
     st <- getState
+    _ <- placeBids (Map.keys (statePlayers st))
+    pure ()
+
+placeBids :: [PlayerId] -> Interact (Map PlayerId Input)
+placeBids pids =
+  do
+    players <- expandPlayers pids
     let playerChoices =
           [ (p, if maxBid == 0
                     then [(AskBid 0 [], "You have no followers")]
                     else [(AskBid maxBid [], "Bid between 0 and " <> Text.pack (show maxBid))])
-          | (p, playerState) <- Map.toList (statePlayers st)
+          | (p, playerState) <- players
           , let maxBid = playerFollowers playerState
           ]
 
@@ -246,7 +188,7 @@ doTestBid =
     st' <- getState
     let processBid state (rpid, input) =
           case input of
-            AskBid bid _ -> loseFollowers rpid bid state
+            AskBid bid _ -> loseFollowers (playerStateId st' rpid) bid state
             _ -> state
         allBids = Map.toList teamBids
     update (foldl' processBid st' allBids)
@@ -255,15 +197,24 @@ doTestBid =
                   | (rpid, AskBid bid _) <- allBids ]
     doLogMultiple bidLogs
 
+    pure teamBids
+
 doTestPlayCards :: Interact ()
 doTestPlayCards =
   do
     st <- getState
+    _ <- playCards (Map.keys (statePlayers st))
+    pure ()
+
+playCards :: [PlayerId] -> Interact (Map PlayerId Input)
+playCards pids =
+  do
+    players <- expandPlayers pids
     let playerChoices =
           [ (p, [ (ChooseCard card False, Text.pack (show card))
                 | card <- playerHand playerState
                 ])
-          | (p, playerState) <- Map.toList (statePlayers st)
+          | (p, playerState) <- players
           ]
 
     teamCards <- askInputsAll
@@ -276,16 +227,17 @@ doTestPlayCards =
     st' <- getState
     let playCard state (rpid, input) =
           case input of
-            ChooseCard card _ -> playCardForPlayer rpid card state
+            ChooseCard card _ -> playCardForPlayer (playerStateId st' rpid) card state
             _ -> state
         allCards = Map.toList teamCards
 
     update (foldl' playCard st' allCards)
 
-    -- Log results after all cards are revealed
     let cardLogs = [ [LogPlayer rpid, LogText "played", LogCard card]
                    | (rpid, ChooseCard card _) <- allCards ]
     doLogMultiple cardLogs
+
+    pure teamCards
 
 doTestMonumentMajority :: PlayerId -> Interact ()
 doTestMonumentMajority pid =
