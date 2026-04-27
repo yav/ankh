@@ -6,7 +6,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Control.Monad (unless)
-import Data.List (foldl', sortBy)
+import Data.List (foldl', partition, sortBy)
 import Data.Ord (comparing)
 
 import KOI.Basics (PlayerId(..))
@@ -306,6 +306,84 @@ scoreRegionMajority rid =
               , LogText (Text.pack (show rid) <> ",")
               , LogText "gained", LogPoints n]
 
+doRegionConflict :: RegionId -> Interact ()
+doRegionConflict rid =
+  do
+    board <- getsState stateBoard
+    let pieces = regionPieces board rid
+        presentPlayers =
+          Set.toList (Set.fromList [ p | PlayerPiece p _ <- pieces ])
+    case presentPlayers of
+      [] -> pure ()
+      [p] ->
+        do
+          scoreRegionMajority rid
+          st <- getState
+          let lid = playerStateId st p
+          update (gainPoints lid 1 st)
+          doLog [ LogPlayer p, LogText "dominates region"
+                , LogText (Text.pack (show rid) <> ",")
+                , LogText "gained", LogPoints 1 ]
+      _ ->
+        do
+          _cards <- playCards presentPlayers
+          pure ()
+
+doPlague :: [PlayerId] -> Interact ()
+doPlague pids =
+  do
+    bids <- placeBids pids
+    let bidAmounts  = [ (pid, n) | (pid, AskBid n _) <- Map.toList bids ]
+        maxBid     = maximum (map snd bidAmounts)
+        topBidders = [ pid | (pid, n) <- bidAmounts, n == maxBid ]
+        saved = case topBidders of
+                  [pid] -> Just pid
+                  _     -> Nothing
+        losers = case saved of
+                   Just winner -> Set.fromList
+                     [ pid | (pid, _) <- bidAmounts, pid /= winner ]
+                   Nothing -> Set.fromList (map fst bidAmounts)
+
+    st <- getState
+    let loserLids = Set.map (playerStateId st) losers
+        board     = stateBoard st
+        (returnedSoldiers, newHexes) =
+          Map.mapAccum (removePieces loserLids) Map.empty (boardHexes board)
+        newPlayers =
+          Map.mapWithKey (returnSoldiers returnedSoldiers) (statePlayers st)
+    update st
+      { stateBoard    = board { boardHexes = newHexes }
+      , statePlayers  = newPlayers
+      }
+
+    case saved of
+      Just winner ->
+        doLog [ LogPlayer winner, LogText "survived the plague" ]
+      Nothing ->
+        doLog [ LogText "No one survived the plague" ]
+
+  where
+  removePieces loserLids acc hex =
+    let (removed, kept) = partition (isLoserNonGod loserLids) (hexPieces hex)
+        soldierCounts   = foldl' countSoldier acc removed
+    in (soldierCounts, hex { hexPieces = kept })
+
+  isLoserNonGod loserLids piece =
+    case piece of
+      PlayerPiece _ God -> False
+      PlayerPiece pid _ -> Set.member pid loserLids
+      _                 -> False
+
+  countSoldier acc piece =
+    case piece of
+      PlayerPiece pid Soldier -> Map.insertWith (+) pid 1 acc
+      _                       -> acc
+
+  returnSoldiers returned pid ps =
+    case Map.lookup pid returned of
+      Just n  -> ps { playerSoldiers = playerSoldiers ps + n }
+      Nothing -> ps
+
 doClaimMonument :: PlayerId -> Interact ()
 doClaimMonument pid =
   do
@@ -414,8 +492,7 @@ doMerge =
             }
       _ -> pure ()
 
-mergePieces ::
-  PlayerId -> PlayerId -> Board -> (Board, Map StructureType Int)
+mergePieces :: PlayerId -> PlayerId -> Board -> (Board, Map StructureType Int)
 mergePieces follow lead board =
   ( board { boardHexes = newHexes }
   , returned
