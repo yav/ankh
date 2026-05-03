@@ -143,10 +143,10 @@ assignRegionIdsFromTags computedRegions regionTagsByHex =
       then fail "Duplicate region tag values found across distinct computed regions"
       else pure regions
   where
-    attachTag (computedRegionId, regionHexes) =
-      case mapMaybe (`Map.lookup` regionTagsByHex) (Set.toList regionHexes) of
+    attachTag (computedRegionId, hexLocs) =
+      case mapMaybe (`Map.lookup` regionTagsByHex) (Set.toList hexLocs) of
         [] -> fail ("Computed region " ++ show computedRegionId ++ " has no region tag")
-        [tag] -> pure (tag, regionHexes)
+        [tag] -> pure (tag, hexLocs)
         tags -> fail
           ("Computed region " ++ show computedRegionId
           ++ " has multiple region tags: " ++ show (Set.toList (Set.fromList tags)))
@@ -414,17 +414,24 @@ subregionEdges wholeRegion subRegion =
   where
     restOfWholeRegion = Set.difference wholeRegion subRegion
 
--- | Get all pieces from all hexes in a region.
-regionPieces :: Board -> RegionId -> [Piece]
-regionPieces board rid =
+-- | Get all hexes in a region with their locations.
+regionHexes :: Board -> RegionId -> [(FLoc, Hex)]
+regionHexes board rid =
   case Map.lookup rid (boardRegions board) of
     Nothing -> []
     Just locs ->
-      [ piece
+      [ (loc, hex)
       | loc <- Set.toList locs
       , Just hex <- [Map.lookup loc (boardHexes board)]
-      , piece <- hexPieces hex
       ]
+
+-- | Get all pieces from all hexes in a region.
+regionPieces :: Board -> RegionId -> [Piece]
+regionPieces board rid =
+  [ piece
+  | (_loc, hex) <- regionHexes board rid
+  , piece <- hexPieces hex
+  ]
 
 -- | Returns the region a hex belongs to.
 hexRegion :: Board -> FLoc -> Maybe RegionId

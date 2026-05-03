@@ -41,6 +41,12 @@ playCard card playerState =
     , playerPlayed = card : playerPlayed playerState
     }
 
+reclaimCards :: PlayerState -> PlayerState
+reclaimCards ps =
+  ps { playerHand = playerHand ps ++ playerPlayed ps
+     , playerPlayed = []
+     }
+
 instance ToJSON PlayerState where
   toJSON ps = JS.object
     [ "followers"  .= playerFollowers ps

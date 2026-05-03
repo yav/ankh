@@ -7,6 +7,9 @@ module App.ActionsBasic
   , chooseRegion
   , askInputsAll
   , expandPlayers
+  , placeBids
+  , playCards
+  , doBuild
   ) where
 
 import Data.Map.Strict (Map)
@@ -14,15 +17,18 @@ import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.List (foldl')
 
 import KOI.Basics (PlayerId, WithPlayer(..))
 import App.KOI
-import App.State (State(..), Merged(..), playerStateId)
+import App.State (State(..), Merged(..), playerStateId, loseFollowers, playCardForPlayer)
 import qualified App.State as State
-import App.Board (Board(..), RegionId, hexRegion)
+import App.Board (Board(..), RegionId, hexRegion, addPieces)
 import App.Input (Input(..), normalizeInput)
-import App.PlayerState (PlayerState(..))
+import App.PlayerState (PlayerState(..), adjustBuildLimit, spendFollowers)
+import App.Piece (Piece(..), StructureType(..))
 import App.LogItem (LogItem(..), LogWord(..))
+import Coord (FLoc)
 
 updateBoard :: (Board -> Board) -> Interact ()
 updateBoard f = update . updateB f =<< getState
@@ -147,3 +153,110 @@ expandPlayers pids =
       | p <- concatMap withFollower pids
       , Just playerState <- [Map.lookup (playerStateId st p) (statePlayers st)]
       ]
+
+placeBids :: [PlayerId] -> Interact (Map PlayerId Input)
+placeBids pids =
+  do
+    players <- expandPlayers pids
+    let playerChoices =
+          [ (p, if maxBid == 0
+                    then [(AskBid 0 [], "You have no followers")]
+                    else [(AskBid maxBid [], "Bid between 0 and " <> Text.pack (show maxBid))])
+          | (p, playerState) <- players
+          , let maxBid = playerFollowers playerState
+          ]
+
+    teamBids <- askInputsAll
+      (\responded notResponded ->
+        let x = length responded
+            y = x + length notResponded
+        in "Bidding (" <> Text.pack (show x) <> "/" <> Text.pack (show y) <> "): How many followers do you want to bid?")
+      playerChoices
+
+    st' <- getState
+    let processBid state (rpid, input) =
+          case input of
+            AskBid bid _ -> loseFollowers (playerStateId st' rpid) bid state
+            _ -> state
+        allBids = Map.toList teamBids
+    update (foldl' processBid st' allBids)
+
+    let bidLogs = [ [LogPlayer rpid, LogText "bid", LogFollowers bid]
+                  | (rpid, AskBid bid _) <- allBids ]
+    doLogMultiple bidLogs
+
+    pure teamBids
+
+playCards :: [PlayerId] -> Interact (Map PlayerId Input)
+playCards pids =
+  do
+    players <- expandPlayers pids
+    let playerChoices =
+          [ (p, [ (ChooseCard card False, Text.pack (show card))
+                | card <- playerHand playerState
+                ])
+          | (p, playerState) <- players
+          ]
+
+    teamCards <- askInputsAll
+      (\responded notResponded ->
+        let x = length responded
+            y = x + length notResponded
+        in "Playing cards (" <> Text.pack (show x) <> "/" <> Text.pack (show y) <> "): Select a card to play")
+      playerChoices
+
+    st' <- getState
+    let playCard state (rpid, input) =
+          case input of
+            ChooseCard card _ -> playCardForPlayer (playerStateId st' rpid) card state
+            _ -> state
+        allCards = Map.toList teamCards
+
+    update (foldl' playCard st' allCards)
+
+    let cardLogs = [ [LogPlayer rpid, LogText "played", LogCard card]
+                   | (rpid, ChooseCard card _) <- allCards ]
+    doLogMultiple cardLogs
+
+    pure teamCards
+
+doBuild :: PlayerId -> Int -> [StructureType] -> [FLoc] -> Interact ()
+doBuild pid cost availableTypes emptySpaces =
+  do
+    typeChoice <-
+      choose pid (questionFor pid "Choose monument type")
+        [ (ChooseMonumentType stype, Text.pack (show stype))
+        | stype <- availableTypes
+        ]
+    case typeChoice of
+      ChooseMonumentType stype ->
+        do
+          locChoice <-
+            choose pid (questionFor pid "Place the monument")
+              [ (ChooseHex loc, Text.pack (show loc))
+              | loc <- emptySpaces
+              ]
+          case locChoice of
+            ChooseHex loc ->
+              do
+                st <- getState
+                let piece = Structure (Just (playerStateId st pid)) stype
+                    newBoard = (stateBoard st)
+                      { boardHexes =
+                          Map.adjust (addPieces [piece]) loc
+                            (boardHexes (stateBoard st))
+                      }
+                update st
+                  { stateBoard      = newBoard
+                  , stateStructures =
+                      Map.adjust (subtract 1) stype (stateStructures st)
+                  , statePlayers    =
+                      Map.adjust
+                        (adjustBuildLimit (-1) . spendFollowers cost)
+                        (playerStateId st pid)
+                        (statePlayers st)
+                  }
+                doLog [ LogPlayer pid, LogText "built a"
+                      , LogStructure stype ]
+            _ -> pure ()
+      _ -> pure ()

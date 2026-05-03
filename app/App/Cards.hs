@@ -93,6 +93,14 @@ cardDescription card = case card of
     \it in reverse Devotion order (starting with the one with the least \
     \Devotion)."
 
+cardStrength :: Card -> Int
+cardStrength card =
+  case card of
+    PlagueOfLocusts -> 1
+    Drought         -> 2
+    Chariots        -> 3
+    _               -> 0
+
 -- | All cards in the game
 allCards :: [Card]
 allCards =

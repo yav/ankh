@@ -1,0 +1,4 @@
+- Implement `ChooseMonumentType` in the UI
+- Common function for gaining devotion, so we can implement Bountiful
+- Guardian representation in player state (return guardians after kills)
+- Trigger conflicts in all regions (full game loop)

@@ -9,6 +9,7 @@ import App.Board
 import Coord (ELoc, FLoc)
 import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..))
 import App.PlayerState
+import App.Powers (Power)
 import App.Cards (Card)
 import App.LogItem (LogItem(..), LogWord)
 
@@ -55,6 +56,16 @@ playerStateId st pid =
   case playerMerged st of
     Just m | pid == playerFollow m -> playerLead m
     _ -> pid
+
+lookupPlayer :: State -> PlayerId -> Maybe PlayerState
+lookupPlayer st pid = Map.lookup (playerStateId st pid) (statePlayers st)
+
+devotion :: State -> PlayerId -> (Int, Int)
+devotion st pid = maybe (0, 0) playerDevotion (lookupPlayer st pid)
+
+hasPower :: Power -> State -> PlayerId -> Bool
+hasPower pow st pid =
+  maybe False (Set.member pow . playerPowers) (lookupPlayer st pid)
 
 stateIsFinal :: State -> Bool
 stateIsFinal _ = False

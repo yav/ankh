@@ -6,15 +6,16 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Control.Monad (unless)
-import Data.List (foldl', partition, sortBy)
+import Data.List (foldl', sortBy)
 import Data.Ord (comparing)
 
 import KOI.Basics (PlayerId(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel, isTestAction)
 import App.KOI
-import App.State (State(..), Merged(..), decrementAction, gainFollowers, gainDevotion, loseFollowers, summonSoldier, playCardForPlayer, playerStateId)
+import App.State (State(..), Merged(..), decrementAction, gainFollowers, summonSoldier, playerStateId)
 import App.LogItem (LogWord(..))
-import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), pieceOwner)
+import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..))
+import App.Conflict (doRegionConflict, scoreRegionMajority)
 import App.Board
   ( Board(..)
   , Hex(..)
@@ -23,7 +24,6 @@ import App.Board
   , computeFollowersGain
   , movePiece
   , playerPieceLocations
-  , regionPieces
   , validMoveTargets
   , validSummonTargets
   )
@@ -166,39 +166,6 @@ doTestBid =
     _ <- placeBids (Map.keys (statePlayers st))
     pure ()
 
-placeBids :: [PlayerId] -> Interact (Map PlayerId Input)
-placeBids pids =
-  do
-    players <- expandPlayers pids
-    let playerChoices =
-          [ (p, if maxBid == 0
-                    then [(AskBid 0 [], "You have no followers")]
-                    else [(AskBid maxBid [], "Bid between 0 and " <> Text.pack (show maxBid))])
-          | (p, playerState) <- players
-          , let maxBid = playerFollowers playerState
-          ]
-
-    teamBids <- askInputsAll
-      (\responded notResponded ->
-        let x = length responded
-            y = x + length notResponded
-        in "Bidding (" <> Text.pack (show x) <> "/" <> Text.pack (show y) <> "): How many followers do you want to bid?")
-      playerChoices
-
-    st' <- getState
-    let processBid state (rpid, input) =
-          case input of
-            AskBid bid _ -> loseFollowers (playerStateId st' rpid) bid state
-            _ -> state
-        allBids = Map.toList teamBids
-    update (foldl' processBid st' allBids)
-
-    let bidLogs = [ [LogPlayer rpid, LogText "bid", LogFollowers bid]
-                  | (rpid, AskBid bid _) <- allBids ]
-    doLogMultiple bidLogs
-
-    pure teamBids
-
 doTestPlayCards :: Interact ()
 doTestPlayCards =
   do
@@ -206,183 +173,11 @@ doTestPlayCards =
     _ <- playCards (Map.keys (statePlayers st))
     pure ()
 
-playCards :: [PlayerId] -> Interact (Map PlayerId Input)
-playCards pids =
-  do
-    players <- expandPlayers pids
-    let playerChoices =
-          [ (p, [ (ChooseCard card False, Text.pack (show card))
-                | card <- playerHand playerState
-                ])
-          | (p, playerState) <- players
-          ]
-
-    teamCards <- askInputsAll
-      (\responded notResponded ->
-        let x = length responded
-            y = x + length notResponded
-        in "Playing cards (" <> Text.pack (show x) <> "/" <> Text.pack (show y) <> "): Select a card to play")
-      playerChoices
-
-    st' <- getState
-    let playCard state (rpid, input) =
-          case input of
-            ChooseCard card _ -> playCardForPlayer (playerStateId st' rpid) card state
-            _ -> state
-        allCards = Map.toList teamCards
-
-    update (foldl' playCard st' allCards)
-
-    let cardLogs = [ [LogPlayer rpid, LogText "played", LogCard card]
-                   | (rpid, ChooseCard card _) <- allCards ]
-    doLogMultiple cardLogs
-
-    pure teamCards
-
 doTestMonumentMajority :: PlayerId -> Interact ()
 doTestMonumentMajority pid =
   do
     rid <- chooseRegion pid "Select a region for monument majority"
     scoreRegionMajority rid
-
--- No need to worry about teams, because followers shouldn't have
--- pieces on the board
-scoreRegionMajority :: RegionId -> Interact ()
-scoreRegionMajority rid =
-  do
-    board <- getsState stateBoard
-    let pieces = regionPieces board rid
-
-        -- Players who own at least one piece in the region
-        presentPlayers =
-          Set.fromList [ p | piece <- pieces, Just p <- [pieceOwner piece] ]
-
-        -- Count owned structures per (PlayerId, StructureType)
-        structCounts :: Map (PlayerId, StructureType) Int
-        structCounts =
-          Map.fromListWith (+)
-            [ ((p, st), 1)
-            | Structure (Just p) st <- pieces
-            ]
-
-        -- For each structure type, find the strict majority winner
-        winnerFor :: StructureType -> Maybe PlayerId
-        winnerFor stype =
-          let counts =
-                [ (p, n)
-                | p <- Set.toList presentPlayers
-                , let n = Map.findWithDefault 0 (p, stype) structCounts
-                , n > 0
-                ]
-          in case sortBy (flip (comparing snd)) counts of
-               (p1, n1) : (_, n2) : _ | n1 > n2 -> Just p1
-               [(p1, _)]                         -> Just p1
-               _                                 -> Nothing
-
-        -- Sum winnings per player across all structure types
-        winnings :: Map PlayerId Int
-        winnings =
-          Map.fromListWith (+)
-            [ (p, 1)
-            | stype <- [minBound .. maxBound]
-            , Just p <- [winnerFor stype]
-            ]
-
-    -- Sort winners by playerDevotion ascending (fewest first)
-    players <- getsState statePlayers
-    let sortedWinners =
-          sortBy (comparing (\(p, _) -> Map.lookup p players >>= Just . playerDevotion))
-            (Map.toList winnings)
-
-    -- Award points one at a time, re-reading state each iteration
-    mapM_ awardWinner sortedWinners
-
-  where
-    awardWinner (p, n) =
-      do
-        st <- getState
-        update (gainDevotion p n st)
-        doLog [LogPlayer p, LogText "won majority in region"
-              , LogText (Text.pack (show rid) <> ",")
-              , LogText "gained", LogDevotion n]
-
-doRegionConflict :: RegionId -> Interact ()
-doRegionConflict rid =
-  do
-    board <- getsState stateBoard
-    let pieces = regionPieces board rid
-        presentPlayers =
-          Set.toList (Set.fromList [ p | PlayerPiece p _ <- pieces ])
-    case presentPlayers of
-      [] -> pure ()
-      [p] ->
-        do
-          scoreRegionMajority rid
-          st <- getState
-          let lid = playerStateId st p
-          update (gainDevotion lid 1 st)
-          doLog [ LogPlayer p, LogText "dominates region"
-                , LogText (Text.pack (show rid) <> ",")
-                , LogText "gained", LogDevotion 1 ]
-      _ ->
-        do
-          _cards <- playCards presentPlayers
-          pure ()
-
-doPlague :: [PlayerId] -> Interact ()
-doPlague pids =
-  do
-    bids <- placeBids pids
-    let bidAmounts  = [ (pid, n) | (pid, AskBid n _) <- Map.toList bids ]
-        maxBid     = maximum (map snd bidAmounts)
-        topBidders = [ pid | (pid, n) <- bidAmounts, n == maxBid ]
-        saved = case topBidders of
-                  [pid] -> Just pid
-                  _     -> Nothing
-        losers = case saved of
-                   Just winner -> Set.fromList
-                     [ pid | (pid, _) <- bidAmounts, pid /= winner ]
-                   Nothing -> Set.fromList (map fst bidAmounts)
-
-    st <- getState
-    let loserLids = Set.map (playerStateId st) losers
-        board     = stateBoard st
-        (returnedSoldiers, newHexes) =
-          Map.mapAccum (removePieces loserLids) Map.empty (boardHexes board)
-        newPlayers =
-          Map.mapWithKey (returnSoldiers returnedSoldiers) (statePlayers st)
-    update st
-      { stateBoard    = board { boardHexes = newHexes }
-      , statePlayers  = newPlayers
-      }
-
-    case saved of
-      Just winner ->
-        doLog [ LogPlayer winner, LogText "survived the plague" ]
-      Nothing ->
-        doLog [ LogText "No one survived the plague" ]
-
-  where
-  removePieces loserLids acc hex =
-    let (removed, kept) = partition (isLoserNonGod loserLids) (hexPieces hex)
-        soldierCounts   = foldl' countSoldier acc removed
-    in (soldierCounts, hex { hexPieces = kept })
-
-  isLoserNonGod loserLids piece =
-    case piece of
-      PlayerPiece _ God -> False
-      PlayerPiece pid _ -> Set.member pid loserLids
-      _                 -> False
-
-  countSoldier acc piece =
-    case piece of
-      PlayerPiece pid Soldier -> Map.insertWith (+) pid 1 acc
-      _                       -> acc
-
-  returnSoldiers returned pid ps =
-    case Map.lookup pid returned of
-      Just n  -> ps { playerSoldiers = playerSoldiers ps + n }
-      Nothing -> ps
 
 doClaimMonument :: PlayerId -> Interact ()
 doClaimMonument pid =
@@ -390,7 +185,7 @@ doClaimMonument pid =
     st <- getState
     let lid = playerStateId st pid
         board = stateBoard st
-        hasBuildLimit =
+        hasMarkers =
           case Map.lookup lid (statePlayers st) of
             Just ps -> playerBuildLimit ps > 0
             Nothing -> False
@@ -400,7 +195,7 @@ doClaimMonument pid =
                                       (Map.toList (boardHexes board))
 
         targets
-          | not hasBuildLimit = []
+          | not hasMarkers = []
           | hasNeutral = neutralAdj
           | otherwise  = enemyAdj
 

@@ -6,6 +6,7 @@ import Data.Text (Text)
 import Coord (ELoc, FLoc)
 import App.ActionType (Action)
 import App.Cards (Card)
+import App.Piece (StructureType)
 
 data Input
   = ChooseHex FLoc
@@ -15,6 +16,7 @@ data Input
   | TextQuestion Text
   | AskBid Int [Int]      -- ^ Bid amount, teammate bids
   | ChooseCard Card Bool  -- ^ Card to play, teammate selected this card
+  | ChooseMonumentType StructureType
   deriving (Read,Show,Eq,Ord,Generic,JS.ToJSON,JS.FromJSON)
 
 normalizeInput :: Input -> Input

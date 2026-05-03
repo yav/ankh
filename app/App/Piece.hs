@@ -54,6 +54,12 @@ instance JS.ToJSON StructureType where
       Obelisk -> JS.String "obelisk"
       Pyramid -> JS.String "pyramid"
 
+instance JS.FromJSON StructureType where
+  parseJSON = JS.withText "StructureType" $ \txt ->
+    case parseStructureType txt of
+      Just st -> pure st
+      Nothing -> fail ("Unknown structure type: " ++ show txt)
+
 instance JS.ToJSON Piece where
   toJSON x =
     case x of
