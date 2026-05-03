@@ -10,7 +10,7 @@ import cardsInHandIcon from "./images/cards-in-hand.svg"
 import cardsPlayedIcon from "./images/cards-played.svg"
 import followersIconSrc from "./images/followers.svg"
 import soldiersIconSrc from "./images/soldier.svg"
-import pointsIconSrc from "./images/points.svg"
+import devotionIconSrc from "./images/devotion.svg"
 import ankhIconSrc from "./images/ankh.svg"
 
 // Access global playerColors variable from dynamic.js
@@ -94,7 +94,7 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
   private followersStat: IconWithNumber
   private soldiersStat: IconWithNumber
   private buildLimitStat: IconWithNumber
-  private pointsStat: IconWithNumber
+  private devotionStat: IconWithNumber
   private powersContainer: HTMLElement
   private powersList: List<Power>
   private handIcon: HTMLImageElement
@@ -120,7 +120,7 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
     this.followersStat = new IconWithNumber(statsLine, followersIconSrc, "Followers")
     this.soldiersStat = new IconWithNumber(statsLine, soldiersIconSrc, "Soldiers")
     this.buildLimitStat = new IconWithNumber(statsLine, ankhIconSrc, "Remaining buildings")
-    this.pointsStat = new IconWithNumber(statsLine, pointsIconSrc, "Influence")
+    this.devotionStat = new IconWithNumber(statsLine, devotionIconSrc, "Devotion")
 
     // Hand cards icon
     this.handIcon = document.createElement("img")
@@ -195,13 +195,13 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
     const followersChanged = this.followersStat.set(state.followers)
     const soldiersChanged = this.soldiersStat.set(state.soldiers)
     const buildLimitChanged = this.buildLimitStat.set(state.buildLimit)
-    const pointsChanged = this.pointsStat.set(state.points)
+    const devotionChanged = this.devotionStat.set(state.devotion)
     const powersChanged = this.powersList.set(state.powers)
     const handChanged = this.handList.set(state.hand)
     const playedChanged = this.playedList.set(state.played)
 
     return idChanged || followersChanged || soldiersChanged ||
-           buildLimitChanged || pointsChanged || powersChanged ||
+           buildLimitChanged || devotionChanged || powersChanged ||
            handChanged || playedChanged
   }
 
@@ -243,7 +243,7 @@ export class PlayerComponent implements Component<[PlayerId, PlayerState]> {
     this.followersStat.destroy()
     this.soldiersStat.destroy()
     this.buildLimitStat.destroy()
-    this.pointsStat.destroy()
+    this.devotionStat.destroy()
     this.powersList.destroy()
     this.handList.destroy()
     this.playedList.destroy()

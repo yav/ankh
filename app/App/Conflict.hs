@@ -1,6 +1,6 @@
 module App.Conflict where
 
-{- Gain points:
+{- Gain devotion:
 1-Monument Majority (+ Bountiful Ankh Power)
 2-Winner of the Battle (+ Drought Card + Glorious Ankh
 Power + Bountiful Ankh Power)

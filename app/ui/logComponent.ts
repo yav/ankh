@@ -5,7 +5,7 @@ import { CardComponent } from "./cardComponent.ts"
 import { PlayerBadgeComponent } from "./playerComponent.ts"
 import { IconWithNumber } from "./iconWithNumber.ts"
 import followersIconSrc from "./images/followers.svg"
-import pointsIconSrc from "./images/points.svg"
+import devotionIconSrc from "./images/devotion.svg"
 
 
 class LogTextComponent implements Component<string> {
@@ -60,7 +60,7 @@ class LogEntryComponent implements Component<LogWord[]> {
       player: () => new PlayerBadgeComponent(this.dom),
       card: () => new LogCardComponent(this.dom),
       followers: () => new IconWithNumber(this.dom, followersIconSrc, "Followers"),
-      points: () => new IconWithNumber(this.dom, pointsIconSrc, "Influence")
+      devotion: () => new IconWithNumber(this.dom, devotionIconSrc, "Devotion")
     }))
   }
 

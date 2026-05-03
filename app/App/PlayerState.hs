@@ -11,7 +11,7 @@ data PlayerState = PlayerState {
   playerFollowers  :: !Int,
   playerSoldiers   :: !Int,
   playerBuildLimit :: !Int,
-  playerPoints     :: !(Int,Int), -- ^ (points, tiebreaker)
+  playerDevotion   :: !(Int,Int), -- ^ (devotion, tiebreaker)
   playerActions    :: !Int,   -- ^ 1 or 2, depending on if merged
   playerPowers     :: !(Set Power),
   playerHand       :: ![Card],
@@ -46,7 +46,7 @@ instance ToJSON PlayerState where
     [ "followers"  .= playerFollowers ps
     , "soldiers"   .= playerSoldiers ps
     , "buildLimit" .= playerBuildLimit ps
-    , "points"     .= let (x,y) = playerPoints ps in fromIntegral x + fromIntegral y / 10 :: Double
+    , "devotion"   .= let (x,y) = playerDevotion ps in fromIntegral x + fromIntegral y / 10 :: Double
     , "actions"   .= playerActions ps
     , "powers"    .= playerPowers ps
     , "hand"      .= playerHand ps

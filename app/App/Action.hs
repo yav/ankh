@@ -12,7 +12,7 @@ import Data.Ord (comparing)
 import KOI.Basics (PlayerId(..))
 import App.ActionType (Action(..), ActionAmount(..), actionLabel, isTestAction)
 import App.KOI
-import App.State (State(..), Merged(..), decrementAction, gainFollowers, gainPoints, loseFollowers, summonSoldier, playCardForPlayer, playerStateId)
+import App.State (State(..), Merged(..), decrementAction, gainFollowers, gainDevotion, loseFollowers, summonSoldier, playCardForPlayer, playerStateId)
 import App.LogItem (LogWord(..))
 import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), pieceOwner)
 import App.Board
@@ -288,10 +288,10 @@ scoreRegionMajority rid =
             , Just p <- [winnerFor stype]
             ]
 
-    -- Sort winners by playerPoints ascending (fewest first)
+    -- Sort winners by playerDevotion ascending (fewest first)
     players <- getsState statePlayers
     let sortedWinners =
-          sortBy (comparing (\(p, _) -> Map.lookup p players >>= Just . playerPoints))
+          sortBy (comparing (\(p, _) -> Map.lookup p players >>= Just . playerDevotion))
             (Map.toList winnings)
 
     -- Award points one at a time, re-reading state each iteration
@@ -301,10 +301,10 @@ scoreRegionMajority rid =
     awardWinner (p, n) =
       do
         st <- getState
-        update (gainPoints p n st)
+        update (gainDevotion p n st)
         doLog [LogPlayer p, LogText "won majority in region"
               , LogText (Text.pack (show rid) <> ",")
-              , LogText "gained", LogPoints n]
+              , LogText "gained", LogDevotion n]
 
 doRegionConflict :: RegionId -> Interact ()
 doRegionConflict rid =
@@ -320,10 +320,10 @@ doRegionConflict rid =
           scoreRegionMajority rid
           st <- getState
           let lid = playerStateId st p
-          update (gainPoints lid 1 st)
+          update (gainDevotion lid 1 st)
           doLog [ LogPlayer p, LogText "dominates region"
                 , LogText (Text.pack (show rid) <> ",")
-                , LogText "gained", LogPoints 1 ]
+                , LogText "gained", LogDevotion 1 ]
       _ ->
         do
           _cards <- playCards presentPlayers
@@ -459,7 +459,7 @@ doMerge :: Interact ()
 doMerge =
   do
     st <- getState
-    let sorted = sortBy (comparing (playerPoints . snd))
+    let sorted = sortBy (comparing (playerDevotion . snd))
                         (Map.toList (statePlayers st))
     case sorted of
       (follow, followSt) : (lead, leadSt) : _ ->
@@ -467,15 +467,15 @@ doMerge =
           let board          = stateBoard st
               (board', returned) = mergePieces follow lead board
               newLeadSt      = leadSt
-                { playerPoints    = playerPoints followSt
+                { playerDevotion    = playerDevotion followSt
                 , playerFollowers = playerFollowers leadSt
                                   + playerFollowers followSt
                 , playerActions   = 1
                 }
-              (fp, ft)       = playerPoints followSt
+              (fp, ft)       = playerDevotion followSt
               adjustOther ps
-                | (px, py) <- playerPoints ps, px == fp, py > ft =
-                    ps { playerPoints = (px, py - 1) }
+                | (px, py) <- playerDevotion ps, px == fp, py > ft =
+                    ps { playerDevotion = (px, py - 1) }
                 | otherwise = ps
               newStructures  = Map.unionWith (+) (stateStructures st) returned
               newPlayers     = Map.delete follow

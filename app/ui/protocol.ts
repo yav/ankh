@@ -74,7 +74,7 @@ export type PlayerState = {
   followers: number,
   soldiers: number,
   buildLimit: number,
-  points: number,
+  devotion: number,
   actions: number,
   powers: Power[],
   hand: Card[],
@@ -132,7 +132,7 @@ export type LogWord =
   | { tag: "player", contents: PlayerId }
   | { tag: "card", contents: Card }
   | { tag: "followers", contents: number }
-  | { tag: "points", contents: number }
+  | { tag: "devotion", contents: number }
 
 // Log item type - block elements (recursive)
 export type LogItem =

@@ -10,7 +10,7 @@ data LogWord
   | LogPlayer PlayerId
   | LogCard Card
   | LogFollowers Int
-  | LogPoints Int
+  | LogDevotion Int
   deriving (Read, Show)
 
 instance JS.ToJSON LogWord where
@@ -30,8 +30,8 @@ instance JS.ToJSON LogWord where
     [ "tag" JS..= ("followers" :: Text)
     , "contents" JS..= n
     ]
-  toJSON (LogPoints n) = JS.object
-    [ "tag" JS..= ("points" :: Text)
+  toJSON (LogDevotion n) = JS.object
+    [ "tag" JS..= ("devotion" :: Text)
     , "contents" JS..= n
     ]
 
