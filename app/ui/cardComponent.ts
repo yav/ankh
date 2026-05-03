@@ -20,6 +20,7 @@ function cardStrength(card: Card): number {
   switch (card) {
     case "plagueOfLocusts": return 1
     case "drought":         return 2
+    case "chariots":        return 3
     default:                return 0
   }
 }
