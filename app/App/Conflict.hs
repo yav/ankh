@@ -17,7 +17,7 @@ import Data.Ord (comparing)
 import KOI.Basics (PlayerId(..))
 import App.KOI
 import App.State
-  ( State(..), gainFollowers, gainDevotion, loseFollowers
+  ( State(..), gainFollowers, loseFollowers
   , playerStateId, lookupPlayer, devotion, hasPower)
 import App.LogItem (LogWord(..))
 import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), pieceOwner)
@@ -33,7 +33,7 @@ import App.Board
   )
 import App.Input (Input(..))
 import App.PlayerState (PlayerState(..), reclaimCards)
-import App.ActionsBasic (playCards, placeBids, doBuild, doLog, doLogMultiple)
+import App.ActionsBasic (playCards, placeBids, doBuild, doLog, doLogMultiple, doStartLogGroup, doGainDevotion)
 import Coord (FLoc)
 
 {- Gain devotion:
@@ -84,8 +84,8 @@ battleHexes board bs =
 -- Region conflict
 -------------------------------------------------------------------------------
 
-doRegionConflict :: RegionId -> Interact ()
-doRegionConflict rid =
+doRegionConflict :: Maybe PlayerId -> RegionId -> Interact ()
+doRegionConflict tiebreaker rid =
   do
     board <- getsState stateBoard
     let pieces = regionPieces board rid
@@ -95,16 +95,16 @@ doRegionConflict rid =
       [] -> pure ()
       [p] ->
         do
+          doStartLogGroup
+          doLog [LogText "Conflict in region", LogRegion rid]
           scoreRegionMajority rid
-          st <- getState
-          let lid = playerStateId st p
-          update (gainDevotion lid 1 st)
-          doLog [ LogPlayer p, LogText "dominates region"
-                , LogText (Text.pack (show rid) <> ",")
-                , LogText "gained", LogDevotion 1 ]
+          doGainDevotion p 1
+            [LogText "dominates"]
       _ ->
         do
-          let bs = emptyBattleState board rid (Set.fromList presentPlayers) Nothing
+          doStartLogGroup
+          doLog [LogText "Conflict in region", LogRegion rid]
+          let bs = emptyBattleState board rid (Set.fromList presentPlayers) tiebreaker
           bs1 <- doPlayCards bs
           bs2 <- doFlood bs1
           bs3 <- doPlague bs2
@@ -154,11 +154,11 @@ scoreRegionMajority rid =
                [(p1, _)]                         -> Just p1
                _                                 -> Nothing
 
-        -- Sum winnings per player across all structure types
-        winnings :: Map PlayerId Int
+        -- Collect winning structure types per player
+        winnings :: Map PlayerId [StructureType]
         winnings =
-          Map.fromListWith (+)
-            [ (p, 1)
+          Map.fromListWith (++)
+            [ (p, [stype])
             | stype <- [minBound .. maxBound]
             , Just p <- [winnerFor stype]
             ]
@@ -173,13 +173,12 @@ scoreRegionMajority rid =
     mapM_ awardWinner sortedWinners
 
   where
-    awardWinner (p, n) =
-      do
-        st <- getState
-        update (gainDevotion p n st)
-        doLog [LogPlayer p, LogText "won majority in region"
-              , LogText (Text.pack (show rid) <> ",")
-              , LogText "gained", LogDevotion n]
+    awardWinner (p, stypes) =
+      doGainDevotion p (length stypes)
+        ( LogText "won"
+        : concatMap (\s -> [LogStructure s]) stypes
+        ++ [LogText "majority"]
+        )
 
 -------------------------------------------------------------------------------
 -- Battle phases
@@ -233,7 +232,7 @@ doFlood bs =
           update (foldl' applyGains st1 (Map.toList gains))
 
           doLogMultiple
-            [ [LogPlayer pid, LogText "flood gained", LogFollowers n]
+            [ [LogPlayer pid, LogText "gained", LogFollowers n, LogText "(flood)"]
             | (pid, n) <- Map.toList gains
             ]
 
@@ -418,17 +417,14 @@ awardBattleWinner winner winMargin bs =
         reward = (if glorious && winMargin >= 3 then 3 else 1)
                + droughtBonus
 
-    st1 <- getState
-    update (gainDevotion (playerStateId st1 winner) reward st1)
-    doLog [ LogPlayer winner, LogText "won the battle, gained"
-          , LogDevotion reward ]
+    doGainDevotion winner reward [LogText "won the battle"]
 
     when (hasPower Commanding st winner)
       do
         st2 <- getState
         update (gainFollowers (playerStateId st2 winner) 3 st2)
-        doLog [ LogPlayer winner, LogText "commanding gained"
-              , LogFollowers 3 ]
+        doLog [ LogPlayer winner, LogText "gained"
+              , LogFollowers 3, LogText "(commanding)" ]
 
 -- Phase 7: Magnanimous — losers with 2+ figures at resolution gain 2 devotion
 doMagnanimous :: BattleState -> Interact ()
@@ -444,9 +440,7 @@ doMagnanimous bs =
             ]
     forM_ eligible \pid ->
       do
-        st1 <- getState
-        update (gainDevotion (playerStateId st1 pid) 2 st1)
-        doLog [ LogPlayer pid, LogText "magnanimous gained", LogDevotion 2 ]
+        doGainDevotion pid 2 [LogText "magnanimous"]
 
 -- Phase 8: Miracle — 1 devotion per figure killed during battle
 doMiracle :: BattleState -> Interact ()
@@ -464,9 +458,7 @@ doMiracle bs =
         let kills = Map.findWithDefault 0 (playerStateId st1 pid)
                                           (battleKills bs)
         when (kills > 0)
-          do
-            update (gainDevotion (playerStateId st1 pid) kills st1)
-            doLog [ LogPlayer pid, LogText "miracle gained", LogDevotion kills ]
+          (doGainDevotion pid kills [LogText "miracle"])
 
 -- Phase 9: Worshipful — sacrifice 2 followers for 1 devotion
 doWorshipful :: BattleState -> Interact ()
@@ -492,9 +484,9 @@ doWorshipful bs =
             do
               st1 <- getState
               let lid = playerStateId st1 pid
-              update (gainDevotion lid 1 (loseFollowers lid 2 st1))
-              doLog [ LogPlayer pid, LogText "worshipful sacrificed"
-                    , LogFollowers 2, LogText "gained", LogDevotion 1 ]
+              update (loseFollowers lid 2 st1)
+              doGainDevotion pid 1
+                [LogText "worshipful, sacrificed", LogFollowers 2]
           _ -> pure ()
 
 -- Phase 10: Cycle of Ma'at — reclaim all played cards to hand

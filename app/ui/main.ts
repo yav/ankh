@@ -30,7 +30,7 @@ type GameState = {
 export let conn: Connection<Input>;
 let gui: GUI;
 
-const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid", "testPlayCards", "testMonumentMajority", "testClaimMonument"]
+const actionOrder: Action[] = ["move", "summon", "follower", "power", "testSplitRegion", "testBid", "testPlayCards", "testMonumentMajority", "testClaimMonument", "testConflict"]
 
 function syncRegionsToggle(): void {
   const regionsToggle = document.getElementById("regions-toggle") as HTMLInputElement | null
@@ -215,6 +215,13 @@ function uiQuestion (q: Question<Input>) {
         for (const playerComponent of playerComponents) {
           (playerComponent as PlayerComponent).handleChooseCardQuestion(card, q)
         }
+      }
+      break
+
+    case "ChooseMonumentType":
+      {
+        const [stype, teammateSelected] = q.chChoice.contents
+        gui.structuresComponent.handleChooseMonumentTypeQuestion(stype, teammateSelected, q)
       }
       break
   }

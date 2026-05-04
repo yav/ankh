@@ -14,6 +14,7 @@ export type Input =
   | { tag: "TextQuestion", contents: string }
   | { tag: "AskBid", contents: [number, number[]] }  // [bid amount, teammate bids]
   | { tag: "ChooseCard", contents: [Card, boolean] }  // [card, teammate selected this]
+  | { tag: "ChooseMonumentType", contents: [StructureType, boolean] }
 
 // Hexagonal coordinate system (FLoc in Haskell)
 // Serialized as [x, y] array
@@ -86,7 +87,7 @@ export type ActionAmount = {
   max: number
 }
 
-export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid" | "testPlayCards" | "testMonumentMajority" | "testClaimMonument"
+export type Action = "move" | "summon" | "follower" | "power" | "testSplitRegion" | "testBid" | "testPlayCards" | "testMonumentMajority" | "testClaimMonument" | "testConflict"
 
 // Powers (matches App.Powers)
 export type Power =
@@ -133,6 +134,8 @@ export type LogWord =
   | { tag: "card", contents: Card }
   | { tag: "followers", contents: number }
   | { tag: "devotion", contents: number }
+  | { tag: "structure", contents: StructureType }
+  | { tag: "region", contents: number }
 
 // Log item type - block elements (recursive)
 export type LogItem =

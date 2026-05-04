@@ -75,6 +75,7 @@ runAction pid act =
     TestPlayCards -> doTestPlayCards
     TestMonumentMajority -> doTestMonumentMajority pid
     TestClaimMonument -> doClaimMonument pid
+    TestConflict -> doTestConflict pid
 
 actionHelp :: State -> PlayerId -> Action -> Text
 actionHelp st pid act =
@@ -156,7 +157,7 @@ doGainFollowers pid =
     let lid = playerStateId st pid
     let amount = computeFollowersGain (stateBoard st) lid
     update (gainFollowers lid amount st)
-    doLog [LogPlayer pid, LogText "gained", LogFollowers amount]
+    doLog [LogPlayer pid, LogText "gained", LogFollowers amount, LogText "(followers action)"]
 
 
 doTestBid :: Interact ()
@@ -178,6 +179,12 @@ doTestMonumentMajority pid =
   do
     rid <- chooseRegion pid "Select a region for monument majority"
     scoreRegionMajority rid
+
+doTestConflict :: PlayerId -> Interact ()
+doTestConflict pid =
+  do
+    rid <- chooseRegion pid "Select a region for conflict"
+    doRegionConflict (Just pid) rid
 
 doClaimMonument :: PlayerId -> Interact ()
 doClaimMonument pid =

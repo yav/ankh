@@ -83,6 +83,23 @@ html, body {
   margin-left: 2px;
 }
 
+.structure-question-choice {
+  cursor: pointer;
+  background: #e3f2fd;
+  border-radius: 4px;
+  padding: 2px 4px;
+  box-shadow: 0 0 0 2px #3498DB;
+}
+
+.structure-question-choice:hover {
+  background: #bbdefb;
+}
+
+.structure-question-choice.teammate-selected {
+  box-shadow: 0 0 0 3px gold;
+  background: rgba(255, 215, 0, 0.2);
+}
+
 .actions-container {
   display: flex;
   flex-wrap: wrap;
@@ -825,6 +842,22 @@ html, body {
 .log-text {
   font-size: 13px;
   color: #2C3E50;
+}
+
+.log-region-badge {
+  display: inline-block;
+  border: 1px solid #95A5A6;
+  border-radius: 3px;
+  padding: 0 4px;
+  margin: 0 3px;
+  font-size: 12px;
+}
+
+.log-structure-icon {
+  height: 1em;
+  width: 1em;
+  vertical-align: middle;
+  margin: 0 2px;
 }
 
 .log-group {

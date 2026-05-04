@@ -16,6 +16,7 @@ data Action
   | TestPlayCards
   | TestMonumentMajority
   | TestClaimMonument
+  | TestConflict
   deriving (Eq, Ord, Enum, Bounded, Read, Show)
 
 data ActionAmount = ActionAmount {
@@ -49,6 +50,7 @@ isTestAction act =
     TestPlayCards        -> True
     TestMonumentMajority -> True
     TestClaimMonument    -> True
+    TestConflict         -> True
     _                    -> False
 
 -- | Human-readable label for presenting an action choice to the player.
@@ -64,6 +66,7 @@ actionLabel act =
     TestPlayCards -> "Test Play Cards"
     TestMonumentMajority -> "Test Majority"
     TestClaimMonument -> "Test Claim"
+    TestConflict -> "Test Conflict"
 
 instance ToJSON Action where
   toJSON act =
@@ -77,6 +80,7 @@ instance ToJSON Action where
       TestPlayCards     -> "testPlayCards"
       TestMonumentMajority -> "testMonumentMajority"
       TestClaimMonument -> "testClaimMonument"
+      TestConflict      -> "testConflict"
 
 instance FromJSON Action where
   parseJSON = JS.withText "Action" $ \txt ->
@@ -90,6 +94,7 @@ instance FromJSON Action where
       "testPlayCards" -> pure TestPlayCards
       "testMonumentMajority" -> pure TestMonumentMajority
       "testClaimMonument" -> pure TestClaimMonument
+      "testConflict"      -> pure TestConflict
       _ -> fail ("Unknown action: " ++ show txt)
 
 instance ToJSON ActionAmount where

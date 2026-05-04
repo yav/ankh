@@ -4,6 +4,7 @@ module App.ActionsBasic
   , doLog
   , doLogMultiple
   , doStartLogGroup
+  , doGainDevotion
   , chooseRegion
   , askInputsAll
   , expandPlayers
@@ -28,6 +29,7 @@ import App.Input (Input(..), normalizeInput)
 import App.PlayerState (PlayerState(..), adjustBuildLimit, spendFollowers)
 import App.Piece (Piece(..), StructureType(..))
 import App.LogItem (LogItem(..), LogWord(..))
+import App.Powers (Power(Bountiful))
 import Coord (FLoc)
 
 updateBoard :: (Board -> Board) -> Interact ()
@@ -54,6 +56,20 @@ doStartLogGroup :: Interact ()
 doStartLogGroup = do
   st <- getState
   update (State.addLogItems [LogGroup []] st)
+
+doGainDevotion :: PlayerId -> Int -> [LogWord] -> Interact ()
+doGainDevotion pid amount reason =
+  do
+    st <- getState
+    let lid      = playerStateId st pid
+        curDev   = fst (maybe (0, 0) playerDevotion (State.lookupPlayer st pid))
+        isBountiful = State.hasPower Bountiful st pid && curDev < 20
+        total    = amount + if isBountiful then 1 else 0
+    update (State.gainDevotion lid total st)
+    doLog (  [LogPlayer pid, LogText "gained", LogDevotion amount]
+          ++ [LogText "(+1 bountiful)" | isBountiful]
+          ++ [LogText "("] ++ reason ++ [LogText ")"]
+          )
 
 chooseRegion :: PlayerId -> Text -> Interact RegionId
 chooseRegion pid prompt =
@@ -137,6 +153,8 @@ askInputsAll mkQuestion playerOpts =
     case choice of
       AskBid bid _   -> AskBid bid [ b | AskBid b _ <- teammates ]
       ChooseCard c _ -> ChooseCard c (or [ c == c' | ChooseCard c' _ <- teammates ])
+      ChooseMonumentType s _ ->
+        ChooseMonumentType s (or [ s == s' | ChooseMonumentType s' _ <- teammates ])
       other -> other
 
 expandPlayers :: [PlayerId] -> Interact [(PlayerId, PlayerState)]
@@ -223,13 +241,18 @@ playCards pids =
 doBuild :: PlayerId -> Int -> [StructureType] -> [FLoc] -> Interact ()
 doBuild pid cost availableTypes emptySpaces =
   do
-    typeChoice <-
-      choose pid (questionFor pid "Choose monument type")
-        [ (ChooseMonumentType stype, Text.pack (show stype))
-        | stype <- availableTypes
-        ]
-    case typeChoice of
-      ChooseMonumentType stype ->
+    players <- expandPlayers [pid]
+    let typeChoices =
+          [ (p, [ (ChooseMonumentType stype False, Text.pack (show stype))
+                | stype <- availableTypes
+                ])
+          | (p, _) <- players
+          ]
+    typeResponses <- askInputsAll
+      (\_ _ -> questionFor pid "Choose monument type")
+      typeChoices
+    case Map.lookup pid typeResponses of
+      Just (ChooseMonumentType stype _) ->
         do
           locChoice <-
             choose pid (questionFor pid "Place the monument")

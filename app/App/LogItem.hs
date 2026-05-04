@@ -5,6 +5,7 @@ import Data.Aeson qualified as JS
 import KOI.Basics (PlayerId)
 import App.Cards (Card)
 import App.Piece (StructureType)
+import App.Board (RegionId)
 
 data LogWord
   = LogText Text
@@ -13,6 +14,7 @@ data LogWord
   | LogFollowers Int
   | LogDevotion Int
   | LogStructure StructureType
+  | LogRegion RegionId
   deriving (Read, Show)
 
 instance JS.ToJSON LogWord where
@@ -39,6 +41,10 @@ instance JS.ToJSON LogWord where
   toJSON (LogStructure stype) = JS.object
     [ "tag" JS..= ("structure" :: Text)
     , "contents" JS..= stype
+    ]
+  toJSON (LogRegion rid) = JS.object
+    [ "tag" JS..= ("region" :: Text)
+    , "contents" JS..= rid
     ]
 
 data LogItem

@@ -1,11 +1,45 @@
 import type { Component } from "./common-js/combinators.ts"
 import { Text, Tagged, List } from "./common-js/combinators.ts"
-import type { LogItem, LogWord } from "./protocol.ts"
+import type { LogItem, LogWord, StructureType } from "./protocol.ts"
 import { CardComponent } from "./cardComponent.ts"
 import { PlayerBadgeComponent } from "./playerComponent.ts"
 import { IconWithNumber } from "./iconWithNumber.ts"
 import followersIconSrc from "./images/followers.svg"
 import devotionIconSrc from "./images/devotion.svg"
+import templeIconSrc from "./images/temple.svg"
+import obeliskIconSrc from "./images/obelisk.svg"
+import pyramidIconSrc from "./images/pyramid.svg"
+
+const structureIcons: Record<StructureType, string> = {
+  temple: templeIconSrc,
+  obelisk: obeliskIconSrc,
+  pyramid: pyramidIconSrc
+}
+
+class LogStructureComponent implements Component<StructureType> {
+  private dom: HTMLImageElement
+  private current: StructureType | null
+
+  constructor(parent: HTMLElement) {
+    this.dom = document.createElement("img")
+    this.dom.className = "log-structure-icon"
+    this.current = null
+    parent.appendChild(this.dom)
+  }
+
+  set(stype: StructureType): boolean {
+    if (this.current === stype) return false
+    this.current = stype
+    this.dom.src = structureIcons[stype]
+    this.dom.alt = stype
+    this.dom.title = stype
+    return true
+  }
+
+  destroy(): void {
+    this.dom.remove()
+  }
+}
 
 
 class LogTextComponent implements Component<string> {
@@ -21,6 +55,28 @@ class LogTextComponent implements Component<string> {
 
   set(text: string): boolean {
     return this.textComponent.set(text)
+  }
+
+  destroy(): void {
+    this.textComponent.destroy()
+    this.dom.remove()
+  }
+}
+
+
+class LogRegionComponent implements Component<number> {
+  private dom: HTMLElement
+  private textComponent: Text
+
+  constructor(parent: HTMLElement) {
+    this.dom = document.createElement("span")
+    this.dom.className = "log-region-badge"
+    this.textComponent = new Text(this.dom, false)
+    parent.appendChild(this.dom)
+  }
+
+  set(regionId: number): boolean {
+    return this.textComponent.set(`${regionId}`)
   }
 
   destroy(): void {
@@ -60,7 +116,9 @@ class LogEntryComponent implements Component<LogWord[]> {
       player: () => new PlayerBadgeComponent(this.dom),
       card: () => new LogCardComponent(this.dom),
       followers: () => new IconWithNumber(this.dom, followersIconSrc, "Followers"),
-      devotion: () => new IconWithNumber(this.dom, devotionIconSrc, "Devotion")
+      devotion: () => new IconWithNumber(this.dom, devotionIconSrc, "Devotion"),
+      structure: () => new LogStructureComponent(this.dom),
+      region: () => new LogRegionComponent(this.dom)
     }))
   }
 
