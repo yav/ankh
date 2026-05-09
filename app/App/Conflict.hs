@@ -323,7 +323,10 @@ doBattleResolution bs =
             Nothing -> battlePlayers bs
             Just winner -> Set.delete winner (battlePlayers bs)
         bs2 = bs1 { battleWinner = mbWinner, battleLosers = losers }
-    resolveBattle winMargin bs2
+    case mbWinner of
+      Nothing -> doLog [LogText "The battle is a tie!"]
+      Just winner -> awardBattleWinner winner winMargin bs2
+    killFigures bs2 (battleLosers bs2) (battleLocs bs2) (battleFloodProtected bs2)
 
 -- Compute strengths, determine winner (asking about tiebreaker if needed),
 -- and record figure counts at resolution time.
@@ -389,14 +392,6 @@ determineBattleWinner bs =
           }
 
     pure (mbWinner, winMargin, bs1)
-
-resolveBattle :: Int -> BattleState -> Interact BattleState
-resolveBattle winMargin bs =
-  do
-    case battleWinner bs of
-      Nothing -> doLog [LogText "The battle is a tie!"]
-      Just winner -> awardBattleWinner winner winMargin bs
-    killFigures bs (battleLosers bs) (battleLocs bs) (battleFloodProtected bs)
 
 awardBattleWinner :: PlayerId -> Int -> BattleState -> Interact ()
 awardBattleWinner winner winMargin bs =
