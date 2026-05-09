@@ -5,7 +5,7 @@ import { BoardComponent } from "./boardComponent.ts"
 import type { StateView, PlayerId, PlayerState, Action, ActionAmount, Input, LogItem } from "./protocol.ts"
 import { List } from "./common-js/combinators.ts"
 import { ActionComponent } from "./actionComponent.ts"
-import { PlayerComponent } from "./playerComponent.ts"
+import { PlayerComponent, setGlobalMerged } from "./playerComponent.ts"
 import { LogItemComponent } from "./logComponent.ts"
 import { configureQuestionActions, registerQuestionCleanup, respondToQuestion, cleanupQuestion } from "./questionActions"
 import { StructureSupplyComponent } from "./structureSupplyComponent.ts"
@@ -251,8 +251,14 @@ function uiUpdate(state: StateView) {
   // Update structure supply
   gui.structuresComponent.set(state.structures)
 
+  // Update merged state (before players/board so badges render correctly)
+  setGlobalMerged(state.merged)
+
   // Update players display using component
   gui.playersComponent.set(state.players)
+
+  // Update merged indicators on board pieces
+  gui.boardComponent.setMerged(state.merged)
 
   // Update log display
   const logChanged = gui.logComponent.set(state.log)

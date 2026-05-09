@@ -11,6 +11,7 @@ import type {
   Hex,
   EdgeType,
   Input,
+  Merged,
   SplitSelectionState
 } from "./protocol.ts"
 import { emptySplitSelectionState } from "./protocol.ts"
@@ -279,6 +280,14 @@ export class BoardComponent implements Component<Board> {
     tempEdge.set({ edgeType: null, splitSelected: false, splitInvalid: false })
     tempEdge.handleChooseEdgeQuestion(question, teammateSelected)
     registerQuestionCleanup(() => tempEdge.destroy())
+  }
+
+  setMerged(merged: Merged | null): void {
+    this.hexes.map((hex) => {
+      if (hex instanceof HexComponent) {
+        hex.setMerged(merged)
+      }
+    })
   }
 
   destroy(): void {

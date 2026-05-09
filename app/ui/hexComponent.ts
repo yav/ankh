@@ -1,5 +1,5 @@
 import { Grid, FLoc, newHexShape } from "../../hex-grid/src/index.ts"
-import type { Hex, Piece, Input } from "./protocol.ts"
+import type { Hex, Piece, Input, Merged } from "./protocol.ts"
 import type { Question } from "./common-js/connect.ts"
 import { Component, List, Text } from "./common-js/combinators.ts"
 import { PieceComponent } from "./pieceComponent.ts"
@@ -192,6 +192,11 @@ export class HexComponent implements Component<HexDisplayData> {
     }
 
     return changed
+  }
+
+  setMerged(merged: Merged | null): void {
+    const pieceElements = this.pieces.getElements() as PieceComponent[]
+    pieceElements.forEach((piece) => piece.setMerged(merged))
   }
 
   destroy(): void {

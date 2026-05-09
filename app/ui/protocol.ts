@@ -1,6 +1,15 @@
 // Protocol types for Ankh game WebSocket communication
 // These types match the server-side Haskell definitions
 
+// Player color hex values (indexed by color name from appColors)
+export const playerColorHex: Record<string, string> = {
+  yellow: "#F1C40F",
+  purple: "#9B59B6",
+  orange: "#E67E22",
+  blue: "#3498DB",
+  green: "#2ECC71"
+}
+
 // Player identification
 export type PlayerId = string
 
@@ -142,6 +151,12 @@ export type LogItem =
   | { tag: "entry", contents: LogWord[] }
   | { tag: "group", contents: LogItem[] }
 
+// Merged player info
+export type Merged = {
+  lead: PlayerId,
+  follow: PlayerId
+}
+
 // State view of the game
 export type StateView = {
   board: Board,
@@ -149,7 +164,8 @@ export type StateView = {
   actions: [Action, ActionAmount][],
   structures: [StructureType, number][],
   splitSelection: SplitSelectionState,
-  log: LogItem[]
+  log: LogItem[],
+  merged: Merged | null
 }
 
 // Get the description of a power

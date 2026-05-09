@@ -29,4 +29,10 @@ instance JS.ToJSON StateView where
     , "structures" JS..= Map.toList (stateStructures st)
     , "splitSelection" JS..= stateSplitSelection st
     , "log" JS..= reverse (stateLog st)  -- Log is stored reversed, reverse for JSON
+    , "merged" JS..= fmap mergedToJSON (playerMerged st)
     ]
+    where
+    mergedToJSON m = JS.object
+      [ "lead" JS..= playerLead m
+      , "follow" JS..= playerFollow m
+      ]

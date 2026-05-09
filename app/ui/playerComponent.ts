@@ -1,6 +1,6 @@
 import { Component, Text, List } from "./common-js/combinators.ts"
-import type { PlayerId, PlayerState, Power, Card, Input } from "./protocol.ts"
-import { powerDescription } from "./protocol.ts"
+import type { PlayerId, PlayerState, Power, Card, Input, Merged } from "./protocol.ts"
+import { powerDescription, playerColorHex } from "./protocol.ts"
 import type { Question } from "./common-js/connect.ts"
 import { registerQuestionCleanup } from "./questionActions"
 import { CardComponent } from "./cardComponent.ts"
@@ -20,6 +20,13 @@ declare global {
   }
 }
 
+
+let globalMerged: Merged | null = null
+
+export function setGlobalMerged(merged: Merged | null): void {
+  globalMerged = merged
+}
+
 export class PlayerBadgeComponent implements Component<PlayerId> {
   private dom: HTMLElement
   private textComponent: Text
@@ -35,16 +42,29 @@ export class PlayerBadgeComponent implements Component<PlayerId> {
 
   set(playerId: PlayerId): boolean {
     if (this.currentPlayer === playerId) return false
-
-    const color = window.playerColors?.[playerId] || "red"
-    if (this.currentPlayer !== null) {
-      const oldColor = window.playerColors?.[this.currentPlayer] || "red"
-      this.dom.classList.remove("player-color-" + oldColor)
-    }
-    this.dom.classList.add("player-color-" + color)
-
     this.currentPlayer = playerId
-    return this.textComponent.set(playerId)
+    this.textComponent.set(playerId)
+    this.applyStyle()
+    return true
+  }
+
+  refresh(): void {
+    this.applyStyle()
+  }
+
+  private applyStyle(): void {
+    if (this.currentPlayer === null) return
+    const myColor = playerColorHex[window.playerColors?.[this.currentPlayer] || "red"] || "#888"
+    let teammateColor = myColor
+    if (globalMerged !== null &&
+        (this.currentPlayer === globalMerged.lead || this.currentPlayer === globalMerged.follow)) {
+      const teammate = this.currentPlayer === globalMerged.lead ? globalMerged.follow : globalMerged.lead
+      teammateColor = playerColorHex[window.playerColors?.[teammate] || "red"] || "#888"
+    }
+    this.dom.style.border = "1px solid rgba(0,0,0,0.3)"
+    this.dom.style.color = "white"
+    this.dom.style.background =
+      `linear-gradient(to right, ${myColor}, ${teammateColor})`
   }
 
   destroy(): void {

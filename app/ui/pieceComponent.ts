@@ -1,7 +1,9 @@
-import type { Piece, Input } from "./protocol.ts"
+import type { Piece, Input, Merged } from "./protocol.ts"
+import { playerColorHex } from "./protocol.ts"
 import type { Question } from "./common-js/connect.ts"
 import { Component } from "./common-js/combinators.ts"
 import { registerQuestionCleanup, respondToQuestion } from "./questionActions"
+
 
 // Access global playerColors variable from dynamic.js
 declare global {
@@ -15,11 +17,8 @@ function getPieceClasses(piece: Piece): string[] {
   const classes = ["piece", `piece-${piece.kind}`]
 
   if (piece.player !== null) {
-    // Player piece - use color from global playerColors variable
-    const color = window.playerColors?.[piece.player] || "red"
-    classes.push("piece-player", `piece-color-${color}`)
+    classes.push("piece-player")
   } else {
-    // Neutral structure
     classes.push("piece-neutral")
   }
 
@@ -34,6 +33,7 @@ export class PieceComponent implements Component<Piece> {
   private tooltip: HTMLElement
   private currentPiece: Piece | null
   private questionClickHandler: (() => void) | null
+  private merged: Merged | null
 
   constructor(x: number, y: number, index: number) {
     // Get container from DOM
@@ -64,6 +64,7 @@ export class PieceComponent implements Component<Piece> {
     document.body.appendChild(this.tooltip)
     this.currentPiece = null
     this.questionClickHandler = null
+    this.merged = null
 
     // Set initial position
     this.updatePosition(x, y, index, 1)
@@ -72,6 +73,7 @@ export class PieceComponent implements Component<Piece> {
   private updateClasses(): void {
     if (this.currentPiece === null) {
       this.pieceElement.className = "piece"
+      this.pieceElement.style.background = ""
       return
     }
 
@@ -80,6 +82,27 @@ export class PieceComponent implements Component<Piece> {
       classes.push("piece-question-choice")
     }
     this.pieceElement.className = classes.join(" ")
+    this.applyMergedStyle()
+  }
+
+  private applyMergedStyle(): void {
+    const piece = this.currentPiece
+    if (piece === null || piece.player === null) {
+      this.pieceElement.style.background = ""
+      return
+    }
+    const color = window.playerColors?.[piece.player] || "red"
+    const myColor = playerColorHex[color] || "#888"
+
+    if (this.merged !== null &&
+        (piece.player === this.merged.lead || piece.player === this.merged.follow)) {
+      const teammate = piece.player === this.merged.lead ? this.merged.follow : this.merged.lead
+      const teammateColor = playerColorHex[window.playerColors?.[teammate] || "red"] || "#888"
+      this.pieceElement.style.background =
+        `linear-gradient(to right, ${myColor}, ${teammateColor})`
+    } else {
+      this.pieceElement.style.background = myColor
+    }
   }
 
   private clearQuestionState(): void {
@@ -106,6 +129,11 @@ export class PieceComponent implements Component<Piece> {
 
   handleChooseHexQuestion(question: Question<Input>, teammateSelected: boolean = false): void {
     this.handleChoosePieceQuestion(question, teammateSelected)
+  }
+
+  setMerged(merged: Merged | null): void {
+    this.merged = merged
+    this.updateClasses()
   }
 
   set(piece: Piece): boolean {

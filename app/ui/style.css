@@ -580,53 +580,17 @@ html, body {
   border-radius: 50%;
 }
 
-/* Player colors - applied to border and ::before element */
+/* Player colors */
 .piece-neutral {
   border-color: #7F8C8D;
 }
 
 .piece-neutral::before {
-  background-color: #95A5A6;  /* Gray */
+  background-color: #95A5A6;
 }
 
-.piece-color-yellow {
-  border-color: #D4A017;
-}
-
-.piece-color-yellow::before {
-  background-color: #F1C40F;  /* Yellow */
-}
-
-.piece-color-purple {
-  border-color: #7D3C98;
-}
-
-.piece-color-purple::before {
-  background-color: #9B59B6;  /* Purple */
-}
-
-.piece-color-orange {
-  border-color: #D35400;
-}
-
-.piece-color-orange::before {
-  background-color: #E67E22;  /* Orange */
-}
-
-.piece-color-blue {
-  border-color: #2C7BB6;
-}
-
-.piece-color-blue::before {
-  background-color: #3498DB;  /* Blue */
-}
-
-.piece-color-green {
-  border-color: #27AE60;
-}
-
-.piece-color-green::before {
-  background-color: #2ECC71;  /* Green */
+.piece-player::before {
+  background-color: white;
 }
 
 /* Tooltips */
@@ -878,27 +842,3 @@ html, body {
   margin: 0 4px 0 2px;
 }
 
-.log-player-badge.player-color-yellow {
-  color: #D4A017;
-  border-color: #D4A017;
-}
-
-.log-player-badge.player-color-purple {
-  color: #7D3C98;
-  border-color: #7D3C98;
-}
-
-.log-player-badge.player-color-orange {
-  color: #D35400;
-  border-color: #D35400;
-}
-
-.log-player-badge.player-color-blue {
-  color: #2C7BB6;
-  border-color: #2C7BB6;
-}
-
-.log-player-badge.player-color-green {
-  color: #27AE60;
-  border-color: #27AE60;
-}
