@@ -2,6 +2,7 @@ module App.KOI
   ( KOI(..)
   , Interact
   , questionFor
+  , questionForAll
   , module KOI.Interact
   ) where
 
@@ -21,6 +22,10 @@ type Interact = I.Interact KOI
 
 questionFor :: PlayerId -> T.Text -> T.Text
 questionFor (PlayerId pid) question = pid <> ": " <> question
+
+questionForAll :: [PlayerId] -> T.Text -> T.Text
+questionForAll pids question =
+  T.intercalate ", " [ pid | PlayerId pid <- pids ] <> ": " <> question
 
 instance Component KOI where
   type AppState       KOI = State

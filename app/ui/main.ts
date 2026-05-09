@@ -169,9 +169,13 @@ function uiQuestion (q: Question<Input>) {
   switch (q.chChoice.tag) {
     case "TextQuestion":
       {
+        const [text, teammateSelected] = q.chChoice.contents
         const dom = uiFromTemplate("template-btn")
-        dom.textContent = q.chChoice.contents
+        dom.textContent = text
         dom.title = q.chHelp
+        if (teammateSelected) {
+          dom.classList.add("teammate-selected")
+        }
         dom.addEventListener("click", () => respondToQuestion(q))
 
         gui.buttonsContainer.appendChild(dom)
@@ -197,15 +201,24 @@ function uiQuestion (q: Question<Input>) {
       break
 
     case "ChooseHex":
-      gui.boardComponent.handleChooseHexQuestion(q.chChoice.contents, q)
+      {
+        const [location, teammateSelected] = q.chChoice.contents
+        gui.boardComponent.handleChooseHexQuestion(location, teammateSelected, q)
+      }
       break
 
     case "ChooseEdge":
-      gui.boardComponent.handleChooseEdgeQuestion(q.chChoice.contents, q)
+      {
+        const [location, teammateSelected] = q.chChoice.contents
+        gui.boardComponent.handleChooseEdgeQuestion(location, teammateSelected, q)
+      }
       break
 
     case "ChoosePiece":
-      gui.boardComponent.handleChoosePieceQuestion(q.chChoice.contents, q)
+      {
+        const [location, teammateSelected] = q.chChoice.contents
+        gui.boardComponent.handleChoosePieceQuestion(location, teammateSelected, q)
+      }
       break
 
     case "ChooseCard":

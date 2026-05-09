@@ -9,11 +9,11 @@ import App.Cards (Card)
 import App.Piece (StructureType)
 
 data Input
-  = ChooseHex FLoc
-  | ChooseEdge ELoc
-  | ChoosePiece FLoc
+  = ChooseHex FLoc Bool
+  | ChooseEdge ELoc Bool
+  | ChoosePiece FLoc Bool
   | ChooseAction Action
-  | TextQuestion Text
+  | TextQuestion Text Bool
   | AskBid Int [Int]      -- ^ Bid amount, teammate bids
   | ChooseCard Card Bool  -- ^ Card to play, teammate selected this card
   | ChooseMonumentType StructureType Bool -- ^ Type, teammate selected this type
@@ -22,7 +22,11 @@ data Input
 normalizeInput :: Input -> Input
 normalizeInput input =
     case input of
+      ChooseHex loc _ -> ChooseHex loc False
+      ChooseEdge loc _ -> ChooseEdge loc False
+      ChoosePiece loc _ -> ChoosePiece loc False
+      TextQuestion t _ -> TextQuestion t False
       AskBid bid _ -> AskBid bid []
       ChooseCard card _ -> ChooseCard card False
       ChooseMonumentType stype _ -> ChooseMonumentType stype False
-      other -> other
+      ChooseAction x -> ChooseAction x

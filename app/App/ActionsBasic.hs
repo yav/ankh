@@ -82,11 +82,11 @@ chooseRegion pid prompt =
           ]
     choice <-
       choose pid (questionFor pid prompt)
-        [ (ChooseHex loc, "Region " <> Text.pack (show rid))
+        [ (ChooseHex loc False, "Region " <> Text.pack (show rid))
         | (loc, rid) <- hexChoices
         ]
     case choice of
-      ChooseHex loc ->
+      ChooseHex loc _ ->
         do
           board' <- getsState stateBoard
           case hexRegion board' loc of
@@ -151,7 +151,15 @@ askInputsAll mkQuestion playerOpts =
 
   annotateChoice teammates choice =
     case choice of
-      AskBid bid _   -> AskBid bid [ b | AskBid b _ <- teammates ]
+      ChooseHex loc _ ->
+        ChooseHex loc (or [ loc == loc' | ChooseHex loc' _ <- teammates ])
+      ChooseEdge loc _ ->
+        ChooseEdge loc (or [ loc == loc' | ChooseEdge loc' _ <- teammates ])
+      ChoosePiece loc _ ->
+        ChoosePiece loc (or [ loc == loc' | ChoosePiece loc' _ <- teammates ])
+      TextQuestion t _ ->
+        TextQuestion t (or [ t == t' | TextQuestion t' _ <- teammates ])
+      AskBid bid _ -> AskBid bid [ b | AskBid b _ <- teammates ]
       ChooseCard c _ -> ChooseCard c (or [ c == c' | ChooseCard c' _ <- teammates ])
       ChooseMonumentType s _ ->
         ChooseMonumentType s (or [ s == s' | ChooseMonumentType s' _ <- teammates ])
@@ -256,11 +264,11 @@ doBuild pid cost availableTypes emptySpaces =
         do
           locChoice <-
             choose pid (questionFor pid "Place the monument")
-              [ (ChooseHex loc, Text.pack (show loc))
+              [ (ChooseHex loc False, Text.pack (show loc))
               | loc <- emptySpaces
               ]
           case locChoice of
-            ChooseHex loc ->
+            ChooseHex loc _ ->
               do
                 st <- getState
                 let piece = Structure (Just (playerStateId st pid)) stype

@@ -28,6 +28,7 @@ export class HexComponent implements Component<HexDisplayData> {
   private currentRegionId: string | null
   private currentRegionClass: string
   private currentSplitSelected: boolean
+  private currentTeammateSelected: boolean
 
   constructor(grid: Grid, key: string, offsetX: number, offsetY: number, showRegion: boolean = false) {
     // Get container from DOM
@@ -77,6 +78,7 @@ export class HexComponent implements Component<HexDisplayData> {
     this.currentRegionId = null
     this.currentRegionClass = "hex-region-color-none"
     this.currentSplitSelected = false
+    this.currentTeammateSelected = false
   }
 
   private updateClasses(): void {
@@ -89,6 +91,9 @@ export class HexComponent implements Component<HexDisplayData> {
     }
     if (this.currentSplitSelected) {
       classes.push("hex-split-selected")
+    }
+    if (this.currentTeammateSelected) {
+      classes.push("teammate-selected")
     }
     this.shape.className = classes.join(" ")
   }
@@ -126,15 +131,17 @@ export class HexComponent implements Component<HexDisplayData> {
     const pieceElements = this.pieces.getElements() as PieceComponent[]
     pieceElements.forEach((piece) => piece.setPassThrough(false))
     this.currentQuestion = null
+    this.currentTeammateSelected = false
     this.shape.removeAttribute("title")
     this.updateClasses()
   }
 
-  handleChooseHexQuestion(question: Question<Input>): void {
+  handleChooseHexQuestion(question: Question<Input>, teammateSelected: boolean = false): void {
     this.clearQuestionState()
     const pieceElements = this.pieces.getElements() as PieceComponent[]
     pieceElements.forEach((piece) => piece.setPassThrough(true))
     this.currentQuestion = question
+    this.currentTeammateSelected = teammateSelected
     this.shape.title = question.chHelp
     this.questionClickHandler = () => respondToQuestion(question)
     this.shape.addEventListener("click", this.questionClickHandler)
@@ -142,11 +149,11 @@ export class HexComponent implements Component<HexDisplayData> {
     registerQuestionCleanup(() => this.clearQuestionState())
   }
 
-  handleChoosePieceQuestion(question: Question<Input>): void {
+  handleChoosePieceQuestion(question: Question<Input>, teammateSelected: boolean = false): void {
     this.clearQuestionState()
     const pieceElements = this.pieces.getElements() as PieceComponent[]
     pieceElements.forEach((piece) => piece.setPassThrough(false))
-    pieceElements.forEach((piece) => piece.handleChooseHexQuestion(question))
+    pieceElements.forEach((piece) => piece.handleChooseHexQuestion(question, teammateSelected))
   }
 
   set(data: HexDisplayData): boolean {

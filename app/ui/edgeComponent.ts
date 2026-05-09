@@ -75,13 +75,17 @@ export class EdgeComponent implements Component<EdgeDisplayData> {
     }
     this.currentQuestion = null
     this.edgeShape.removeAttribute("title")
+    this.edgeShape.classList.remove("teammate-selected")
     this.updateClasses()
   }
 
-  handleChooseEdgeQuestion(question: Question<Input>): void {
+  handleChooseEdgeQuestion(question: Question<Input>, teammateSelected: boolean = false): void {
     this.clearQuestionState()
     this.currentQuestion = question
     this.edgeShape.title = question.chHelp
+    if (teammateSelected) {
+      this.edgeShape.classList.add("teammate-selected")
+    }
     this.questionClickHandler = () => respondToQuestion(question)
     this.edgeShape.addEventListener("click", this.questionClickHandler)
     this.updateClasses()

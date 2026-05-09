@@ -88,20 +88,24 @@ export class PieceComponent implements Component<Piece> {
       this.questionClickHandler = null
     }
     this.pieceElement.removeAttribute("title")
+    this.pieceElement.classList.remove("teammate-selected")
     this.updateClasses()
   }
 
-  handleChoosePieceQuestion(question: Question<Input>): void {
+  handleChoosePieceQuestion(question: Question<Input>, teammateSelected: boolean = false): void {
     this.clearQuestionState()
     this.pieceElement.title = question.chHelp
+    if (teammateSelected) {
+      this.pieceElement.classList.add("teammate-selected")
+    }
     this.questionClickHandler = () => respondToQuestion(question)
     this.pieceElement.addEventListener("click", this.questionClickHandler)
     this.updateClasses()
     registerQuestionCleanup(() => this.clearQuestionState())
   }
 
-  handleChooseHexQuestion(question: Question<Input>): void {
-    this.handleChoosePieceQuestion(question)
+  handleChooseHexQuestion(question: Question<Input>, teammateSelected: boolean = false): void {
+    this.handleChoosePieceQuestion(question, teammateSelected)
   }
 
   set(piece: Piece): boolean {

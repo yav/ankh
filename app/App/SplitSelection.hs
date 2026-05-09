@@ -71,11 +71,11 @@ selectSplit pid =
       do
         startChoice <-
           choose pid (questionFor pid "Select the starting edge for split")
-            [ (ChooseEdge edge, T.pack (show edge))
+            [ (ChooseEdge edge False, T.pack (show edge))
             | edge <- startCandidates
             ]
         case startChoice of
-          ChooseEdge start ->
+          ChooseEdge start _ ->
             case Map.lookup start startInfo of
               Just (rid, wholeRegion) ->
                 case startPath wholeRegion start of
@@ -95,7 +95,7 @@ splitLoop pid wholeRegion path =
 
     let candidateEdges = nextPathEdges wholeRegion path
         choices =
-          [ (ChooseEdge edge, T.pack (show edge))
+          [ (ChooseEdge edge False, T.pack (show edge))
           | edge <- candidateEdges
           ]
     case choices of
@@ -103,7 +103,7 @@ splitLoop pid wholeRegion path =
       _ -> do
         choice <- choose pid (questionFor pid "Select edges for the split") choices
         case choice of
-          ChooseEdge edge
+          ChooseEdge edge _
             | edge `elem` candidateEdges ->
                 case extendPath wholeRegion path edge of
                   Just path1 -> splitLoop pid wholeRegion path1
@@ -123,9 +123,9 @@ confirmSplit pid path =
     update (State.setSplitSelectionInvalid False (State.setSplitSelection (pathEdges path) st))
     choice <-
       choose pid (questionFor pid "Confirm this split")
-        [ (TextQuestion "Split Region", "Apply this split") ]
+        [ (TextQuestion "Split Region" False, "Apply this split") ]
     case choice of
-      TextQuestion "Split Region" -> pure (pathEdges path)
+      TextQuestion "Split Region" _ -> pure (pathEdges path)
       _ -> confirmSplit pid path
 
 invalidSplit :: PlayerId -> SplitPath -> Interact (Set ELoc)

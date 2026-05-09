@@ -19,7 +19,7 @@ import App.Conflict (doRegionConflict, scoreRegionMajority)
 import App.Board
   ( Board(..)
   , Hex(..)
-  , RegionId
+
   , claimMonument
   , computeFollowersGain
   , movePiece
@@ -99,13 +99,13 @@ doMove pid =
   loop lid available =
     do
       board <- getsState stateBoard
-      let pieceChoices = [ (ChoosePiece loc, "Move piece at " <> Text.pack (show loc))
+      let pieceChoices = [ (ChoosePiece loc False, "Move piece at " <> Text.pack (show loc))
                          | loc <- Set.toList available ]
-          stopChoice = (TextQuestion "End Moving", "I am done moving pieces")
+          stopChoice = (TextQuestion "End Moving" False, "I am done moving pieces")
 
       choice <- choose pid (questionFor pid "Select a piece to move") (stopChoice : pieceChoices)
       case choice of
-        ChoosePiece loc ->
+        ChoosePiece loc _ ->
           do
             let targets = validMoveTargets board loc
             if null targets
@@ -114,9 +114,9 @@ doMove pid =
                 do
                   targetChoice <-
                     choose pid (questionFor pid "Select destination")
-                      [ (ChooseHex t, Text.pack (show t)) | t <- targets ]
+                      [ (ChooseHex t False, Text.pack (show t)) | t <- targets ]
                   case targetChoice of
-                    ChooseHex to ->
+                    ChooseHex to _ ->
                       do
                         updateBoard (movePiece lid loc to)
                         loop lid (Set.delete loc available)
@@ -140,9 +140,9 @@ doSummon pid =
                   do
                     choice <-
                       choose pid (questionFor pid "Select a hex for summoning")
-                        [ (ChooseHex loc, Text.pack (show loc)) | loc <- targets ]
+                        [ (ChooseHex loc False, Text.pack (show loc)) | loc <- targets ]
                     case choice of
-                      ChooseHex loc ->
+                      ChooseHex loc _ ->
                         do
                           st' <- getState
                           update (summonSoldier lid loc st')
@@ -208,29 +208,40 @@ doClaimMonument pid =
 
     case targets of
       [] -> pure ()
+      [loc] -> claimAt lid loc
       _  ->
         do
-          choice <-
-            choose pid (questionFor pid "Select a monument to claim")
-              [ (ChooseHex loc, Text.pack (show loc)) | loc <- targets ]
-          case choice of
-            ChooseHex loc ->
-              do
-                st' <- getState
-                let board1 = stateBoard st'
-                    (prevOwner, board') = claimMonument lid loc board1
-                    adjustPlayers =
-                      Map.adjust (adjustBuildLimit (-1)) lid
-                      . case prevOwner of
-                          Just prev -> Map.adjust (adjustBuildLimit 1) prev
-                          Nothing   -> id
-                update st'
-                  { stateBoard = board'
-                  , statePlayers = adjustPlayers (statePlayers st')
-                  }
-                doLog [LogPlayer pid, LogText "claimed a monument"]
+          players <- expandPlayers [lid]
+          let locChoices =
+                [ (p, [ (ChooseHex loc False, Text.pack (show loc))
+                      | loc <- targets
+                      ])
+                | (p, _) <- players
+                ]
+          responses <- askInputsAll
+            (\_ notResponded ->
+              questionForAll notResponded "Select a monument to claim")
+            locChoices
+          case Map.lookup lid responses of
+            Just (ChooseHex loc _) -> claimAt lid loc
             _ -> pure ()
   where
+  claimAt lid loc =
+    do
+      st' <- getState
+      let board1 = stateBoard st'
+          (prevOwner, board') = claimMonument lid loc board1
+          adjustPlayers =
+            Map.adjust (adjustBuildLimit (-1)) lid
+            . case prevOwner of
+                Just prev -> Map.adjust (adjustBuildLimit 1) prev
+                Nothing   -> id
+      update st'
+        { stateBoard = board'
+        , statePlayers = adjustPlayers (statePlayers st')
+        }
+      doLog [LogPlayer pid, LogText "claimed a monument"]
+
   classify lid board (!neutral, nAdj, eAdj) (loc, hex) =
     let ps       = hexPieces hex
         isNeutMon = any isNeutral ps

@@ -251,33 +251,33 @@ export class BoardComponent implements Component<Board> {
     return justInitialized || hexesChanged || edgesChanged
   }
 
-  handleChooseHexQuestion(location: HexPos, question: Question<Input>): void {
+  handleChooseHexQuestion(location: HexPos, teammateSelected: boolean, question: Question<Input>): void {
     const [x, y] = location
     const hex = this.hexes.getElement(`${x},${y}`)
     if (hex instanceof HexComponent) {
-      hex.handleChooseHexQuestion(question)
+      hex.handleChooseHexQuestion(question, teammateSelected)
     }
   }
 
-  handleChoosePieceQuestion(location: HexPos, question: Question<Input>): void {
+  handleChoosePieceQuestion(location: HexPos, teammateSelected: boolean, question: Question<Input>): void {
     const [x, y] = location
     const hex = this.hexes.getElement(`${x},${y}`)
     if (hex instanceof HexComponent) {
-      hex.handleChoosePieceQuestion(question)
+      hex.handleChoosePieceQuestion(question, teammateSelected)
     }
   }
 
-  handleChooseEdgeQuestion(location: EdgePos, question: Question<Input>): void {
+  handleChooseEdgeQuestion(location: EdgePos, teammateSelected: boolean, question: Question<Input>): void {
     const [x, y, dir] = location
     const edge = this.edges.getElement(`${x},${y},${dir}`)
     if (edge instanceof EdgeComponent) {
-      edge.handleChooseEdgeQuestion(question)
+      edge.handleChooseEdgeQuestion(question, teammateSelected)
       return
     }
 
     const tempEdge = new EdgeComponent(this.grid, `${x},${y},${dir}`, this.offsetX, this.offsetY)
     tempEdge.set({ edgeType: null, splitSelected: false, splitInvalid: false })
-    tempEdge.handleChooseEdgeQuestion(question)
+    tempEdge.handleChooseEdgeQuestion(question, teammateSelected)
     registerQuestionCleanup(() => tempEdge.destroy())
   }
 

@@ -95,9 +95,8 @@ html, body {
   background: #bbdefb;
 }
 
-.structure-question-choice.teammate-selected {
-  box-shadow: 0 0 0 3px gold;
-  background: rgba(255, 215, 0, 0.2);
+.teammate-selected {
+  background: rgba(255, 215, 0, 0.4) !important;
 }
 
 .actions-container {

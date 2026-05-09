@@ -5,7 +5,6 @@ module App.Conflict
   , scoreRegionMajority
   ) where
 
-import Data.Text qualified as Text
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
@@ -370,12 +369,12 @@ determineBattleWinner bs =
                   do
                     useIt <- choose tb
                       (questionFor tb "Use tiebreaker token to win the battle?")
-                      [ (TextQuestion "Yes", "Use tiebreaker token")
-                      , (TextQuestion "No", "Keep tiebreaker token")
+                      [ (TextQuestion "Yes" False, "Use tiebreaker token")
+                      , (TextQuestion "No" False, "Keep tiebreaker token")
                       ]
                     pure
                       case useIt of
-                        TextQuestion "Yes" -> (Just tb, True)
+                        TextQuestion "Yes" _ -> (Just tb, True)
                         _                  -> (Nothing, False)
                 _ -> pure (Nothing, False)
         _ -> pure (Nothing, False)
@@ -471,11 +470,11 @@ doWorshipful bs =
       do
         answer <- choose pid
           (questionFor pid "Sacrifice 2 followers for 1 devotion?")
-          [ (TextQuestion "Yes", "Sacrifice 2 followers")
-          , (TextQuestion "No", "Keep followers")
+          [ (TextQuestion "Yes" False, "Sacrifice 2 followers")
+          , (TextQuestion "No" False, "Keep followers")
           ]
         case answer of
-          TextQuestion "Yes" ->
+          TextQuestion "Yes" _ ->
             do
               st1 <- getState
               let lid = playerStateId st1 pid

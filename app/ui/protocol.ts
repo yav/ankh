@@ -7,11 +7,11 @@ export type PlayerId = string
 // App input values sent inside KOI ChoiceHelp.chChoice.
 // This mirrors App.Input and its default Aeson encoding.
 export type Input =
-  | { tag: "ChooseHex", contents: HexPos }
-  | { tag: "ChooseEdge", contents: EdgePos }
-  | { tag: "ChoosePiece", contents: HexPos }
+  | { tag: "ChooseHex", contents: [HexPos, boolean] }
+  | { tag: "ChooseEdge", contents: [EdgePos, boolean] }
+  | { tag: "ChoosePiece", contents: [HexPos, boolean] }
   | { tag: "ChooseAction", contents: Action }
-  | { tag: "TextQuestion", contents: string }
+  | { tag: "TextQuestion", contents: [string, boolean] }
   | { tag: "AskBid", contents: [number, number[]] }  // [bid amount, teammate bids]
   | { tag: "ChooseCard", contents: [Card, boolean] }  // [card, teammate selected this]
   | { tag: "ChooseMonumentType", contents: [StructureType, boolean] }
