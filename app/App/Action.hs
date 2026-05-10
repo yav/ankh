@@ -6,7 +6,7 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Control.Monad (unless)
-import Data.List (foldl', sortBy)
+import Data.List (sortBy)
 import Data.Ord (comparing)
 
 import KOI.Basics (PlayerId(..))
@@ -14,7 +14,7 @@ import App.ActionType (Action(..), ActionAmount(..), actionLabel, isTestAction)
 import App.KOI
 import App.State (State(..), Merged(..), decrementAction, gainFollowers, summonSoldier, playerStateId)
 import App.LogItem (LogWord(..))
-import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..))
+import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), belongsTo, isNeutral, isEnemyOf)
 import App.Conflict (doRegionConflict, scoreRegionMajority)
 import App.Board
   ( Board(..)
@@ -243,9 +243,9 @@ doClaimMonument pid =
       doLog [LogPlayer pid, LogText "claimed a monument"]
 
   classify lid board (!neutral, nAdj, eAdj) (loc, hex) =
-    let ps       = hexPieces hex
+    let ps         = hexPieces hex
         isNeutMon = any isNeutral ps
-        isEnemMon = any (isEnemy lid) ps
+        isEnemMon = any (isEnemyOf lid) ps
         adjToUs   = any (hasOurFigure lid board loc) allDirections
     in ( neutral || isNeutMon
        , if isNeutMon && adjToUs then loc : nAdj else nAdj
@@ -256,17 +256,9 @@ doClaimMonument pid =
     let neighbor = flocAdvance loc dir 1
     in  not (Map.member (flocEdge loc dir) (boardEdges board))
         && case Map.lookup neighbor (boardHexes board) of
-             Just hex -> any (isOurs lid) (hexPieces hex)
+             Just hex -> any (belongsTo lid) (hexPieces hex)
              Nothing  -> False
 
-  isOurs lid (PlayerPiece p _) = lid == p
-  isOurs _ _                   = False
-
-  isNeutral (Structure Nothing _) = True
-  isNeutral _                     = False
-
-  isEnemy lid (Structure (Just p) _) = p /= lid
-  isEnemy _ _                        = False
 
 doMerge :: Interact ()
 doMerge =

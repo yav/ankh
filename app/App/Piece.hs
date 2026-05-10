@@ -3,6 +3,7 @@ module App.Piece where
 import Data.Aeson qualified as JS
 import Data.Aeson ((.:))
 import Data.Aeson.Types (Parser)
+import Data.Maybe (isNothing)
 import Data.Text (Text)
 import KOI.Basics (PlayerId)
 
@@ -35,6 +36,15 @@ pieceOwner piece =
   case piece of
     PlayerPiece playerId _ -> Just playerId
     Structure mbPlayer _ -> mbPlayer
+
+belongsTo :: PlayerId -> Piece -> Bool
+belongsTo lid piece = pieceOwner piece == Just lid
+
+isNeutral :: Piece -> Bool
+isNeutral piece = isNothing (pieceOwner piece)
+
+isEnemyOf :: PlayerId -> Piece -> Bool
+isEnemyOf lid piece = maybe False (/= lid) (pieceOwner piece)
 
 -- JSON instances
 instance JS.ToJSON GuardianType where
