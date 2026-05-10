@@ -4,8 +4,15 @@ import Data.Aeson(ToJSON(..), (.=))
 import Data.Aeson qualified as JS
 import Data.Set (Set)
 
+import App.Piece (GuardianType, GuardianSize(..), guardianSize)
 import App.Powers (Power)
 import App.Cards (Card)
+
+defaultSmallGuardianSlots :: Int
+defaultSmallGuardianSlots = 2
+
+defaultLargeGuardianSlots :: Int
+defaultLargeGuardianSlots = 2
 
 data PlayerState = PlayerState {
   playerFollowers  :: !Int,
@@ -15,7 +22,10 @@ data PlayerState = PlayerState {
   playerActions    :: !Int,   -- ^ 1 or 2, depending on if merged
   playerPowers     :: !(Set Power),
   playerHand       :: ![Card],
-  playerPlayed     :: ![Card]
+  playerPlayed     :: ![Card],
+  playerGuardians  :: ![GuardianType],
+  playerSmallGuardianSlots :: !Int,
+  playerLargeGuardianSlots :: !Int
 }
   deriving (Read, Show)
 
@@ -47,6 +57,21 @@ reclaimCards ps =
      , playerPlayed = []
      }
 
+
+-- | Return an existing guardian to the supply
+-- (does not affect limits)
+addGuardian :: GuardianType -> PlayerState -> PlayerState
+addGuardian gt ps =
+  ps { playerGuardians = gt : playerGuardians ps }
+
+-- | Add a new guardian to supply
+gainGuardian :: GuardianType -> PlayerState -> PlayerState
+gainGuardian gt ps0 =
+  case guardianSize gt of
+    Small -> ps { playerSmallGuardianSlots = playerSmallGuardianSlots ps0 - 1 }
+    Large -> ps { playerLargeGuardianSlots = playerLargeGuardianSlots ps0 - 1 }
+  where ps = addGuardian gt ps0
+
 instance ToJSON PlayerState where
   toJSON ps = JS.object
     [ "followers"  .= playerFollowers ps
@@ -57,4 +82,7 @@ instance ToJSON PlayerState where
     , "powers"    .= playerPowers ps
     , "hand"      .= playerHand ps
     , "played"    .= playerPlayed ps
+    , "guardians" .= playerGuardians ps
+    , "smallGuardianSlots" .= playerSmallGuardianSlots ps
+    , "largeGuardianSlots" .= playerLargeGuardianSlots ps
     ]

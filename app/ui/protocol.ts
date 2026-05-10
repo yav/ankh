@@ -42,6 +42,15 @@ export type PlayerPieceType = "god" | "soldier" | "guardian"
 // Structure types (always represented as strings)
 export type StructureType = "temple" | "obelisk" | "pyramid"
 
+// Guardian types serialized from Haskell GuardianType
+export type GuardianType =
+  | "cat-mummy"
+  | "satet"
+  | "mummy"
+  | "apep"
+  | "giant-scorpion"
+  | "androsphinx"
+
 // Game pieces
 // Both player pieces and structures use the same shape: { player, kind }
 // player is PlayerId for player pieces, null for structures
@@ -88,7 +97,10 @@ export type PlayerState = {
   actions: number,
   powers: Power[],
   hand: Card[],
-  played: Card[]
+  played: Card[],
+  guardians: GuardianType[],
+  smallGuardianSlots: number,
+  largeGuardianSlots: number
 }
 
 export type ActionAmount = {

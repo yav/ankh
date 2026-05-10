@@ -62,9 +62,13 @@ main = startApp App
                 , playerPowers = Set.fromList [Commanding, Inspiring]
                 , playerHand = [BuildMonument, Chariots, CycleOfMaat, Drought]
                 , playerPlayed = [PlagueOfLocusts, Flood, Miracle]
+                , playerGuardians = []
+                , playerSmallGuardianSlots = defaultSmallGuardianSlots
+                , playerLargeGuardianSlots = defaultLargeGuardianSlots
                 })
             | (i, p) <- zip [0..] ps
             ]
+          , stateGuardians = mempty
           , stateActions = initActionSelector numPlayers
           , stateStructures =
               Map.differenceWith (\total used -> Just (total - used))

@@ -7,7 +7,7 @@ import qualified Data.Set as Set
 import App.ActionType
 import App.Board
 import Coord (ELoc, FLoc)
-import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..))
+import App.Piece (Piece(..), PlayerPieceType(..), StructureType(..), GuardianType)
 import App.PlayerState
 import App.Powers (Power)
 import App.Cards (Card)
@@ -39,14 +39,15 @@ data Merged = Merged
   deriving (Read, Show)
 
 data State = State
-  { stateBoard   :: Board
-  , statePlayers :: Map.Map PlayerId PlayerState
-  , stateActions :: Map.Map Action ActionAmount
-  , stateStructures :: Map.Map StructureType Int
+  { stateBoard       :: Board
+  , statePlayers     :: Map.Map PlayerId PlayerState
+  , stateActions     :: Map.Map Action ActionAmount
+  , stateStructures  :: Map.Map StructureType Int
+  , stateGuardians   :: Map.Map GuardianType Int  -- ^ remaining supply of the 3 guardian types for this game
   , stateSplitSelection :: SplitSelectionState
-  , stateLog     :: [LogItem]
-  , playerMerged :: Maybe Merged
-  , playerOrder  :: [PlayerId]
+  , stateLog         :: [LogItem]
+  , playerMerged     :: Maybe Merged
+  , playerOrder      :: [PlayerId]
   , remainingActions :: Int
   }
   deriving (Read, Show)

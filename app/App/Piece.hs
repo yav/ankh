@@ -4,7 +4,7 @@ import Data.Aeson qualified as JS
 import Data.Aeson ((.:))
 import Data.Aeson.Types (Parser)
 import Data.Maybe (isNothing)
-import Data.Text (Text)
+import Data.Text (Text, stripPrefix)
 import KOI.Basics (PlayerId)
 
 -- | Game pieces
@@ -27,9 +27,39 @@ data StructureType
   | Pyramid
   deriving (Eq, Ord, Enum, Bounded, Read, Show)
 
--- | Placeholder for guardian types
-data GuardianType = GuardianType
-  deriving (Read, Show)
+-- | Guardian types available in the game
+data GuardianType
+  = CatMummy
+  | Satet
+  | Mummy
+  | Apep
+  | GiantScorpion
+  | Androsphinx
+  deriving (Eq, Ord, Enum, Bounded, Read, Show)
+
+-- | Guardian size categories
+data GuardianSize = Small | Large
+  deriving (Eq, Ord, Read, Show)
+
+guardianSize :: GuardianType -> GuardianSize
+guardianSize gt =
+  case gt of
+    CatMummy      -> Small
+    Satet         -> Small
+    Mummy         -> Small
+    Apep          -> Large
+    GiantScorpion -> Large
+    Androsphinx   -> Large
+
+guardianTier :: GuardianType -> Int
+guardianTier gt =
+  case gt of
+    CatMummy      -> 1
+    Satet         -> 1
+    Mummy         -> 2
+    Apep          -> 2
+    GiantScorpion -> 3
+    Androsphinx   -> 3
 
 pieceOwner :: Piece -> Maybe PlayerId
 pieceOwner piece =
@@ -46,16 +76,51 @@ isNeutral piece = isNothing (pieceOwner piece)
 isEnemyOf :: PlayerId -> Piece -> Bool
 isEnemyOf lid piece = maybe False (/= lid) (pieceOwner piece)
 
+guardianTypeText :: GuardianType -> Text
+guardianTypeText gt =
+  case gt of
+    CatMummy      -> "cat-mummy"
+    Satet         -> "satet"
+    Mummy         -> "mummy"
+    Apep          -> "apep"
+    GiantScorpion -> "giant-scorpion"
+    Androsphinx   -> "androsphinx"
+
+parseGuardianType :: Text -> Maybe GuardianType
+parseGuardianType txt =
+  case txt of
+    "cat-mummy"     -> Just CatMummy
+    "satet"         -> Just Satet
+    "mummy"         -> Just Mummy
+    "apep"          -> Just Apep
+    "giant-scorpion" -> Just GiantScorpion
+    "androsphinx"   -> Just Androsphinx
+    _               -> Nothing
+
 -- JSON instances
 instance JS.ToJSON GuardianType where
-  toJSON GuardianType = JS.object []
+  toJSON = JS.String . guardianTypeText
+
+instance JS.ToJSON GuardianSize where
+  toJSON sz =
+    JS.String
+      (case sz of
+         Small -> "small"
+         Large -> "large"
+      )
+
+instance JS.FromJSON GuardianType where
+  parseJSON = JS.withText "GuardianType" $ \txt ->
+    case parseGuardianType txt of
+      Just gt -> pure gt
+      Nothing -> fail ("Unknown guardian type: " ++ show txt)
 
 instance JS.ToJSON PlayerPieceType where
   toJSON x =
     case x of
       God -> JS.String "god"
       Soldier -> JS.String "soldier"
-      Guardian _guardianType -> JS.String "guardian"
+      Guardian gt -> JS.String ("guardian:" <> guardianTypeText gt)
 
 instance JS.ToJSON StructureType where
   toJSON x =
@@ -108,8 +173,12 @@ parsePlayerPieceType txt =
   case txt of
     "god" -> pure God
     "soldier" -> pure Soldier
-    "guardian" -> pure (Guardian GuardianType)
-    _ -> fail ("Unknown player piece type: " ++ show txt)
+    _ -> case stripPrefix "guardian:" txt of
+           Just gtTxt ->
+             case parseGuardianType gtTxt of
+               Just gt -> pure (Guardian gt)
+               Nothing -> fail ("Unknown guardian type: " ++ show gtTxt)
+           Nothing -> fail ("Unknown player piece type: " ++ show txt)
 
 parseStructureType :: Text -> Maybe StructureType
 parseStructureType txt =
