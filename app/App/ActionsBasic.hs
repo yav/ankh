@@ -102,7 +102,7 @@ askInputsAll mkQuestion playerOpts =
   inUndoGroup
   do
     st <- getState
-    let merged = playerMerged st
+    let merged     = playerMerged st
         allChoices = Map.fromList playerOpts
     go merged Map.empty allChoices allChoices
   where

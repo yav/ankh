@@ -9,8 +9,8 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.List (foldl', partition, sortBy)
-import Control.Monad (forM_, when)
+import Data.List (partition, sortBy)
+import Control.Monad (forM_, foldM, when)
 import Data.Ord (comparing)
 
 import KOI.Basics (PlayerId(..))
@@ -106,7 +106,8 @@ doRegionConflict tiebreaker rid =
           let bs = emptyBattleState board rid (Set.fromList presentPlayers) tiebreaker
           bs1 <- doPlayCards bs
           bs2 <- doFlood bs1
-          bs3 <- doPlague bs2
+          bs3 <- foldM (\s _ -> doPlague s) bs2
+                    [ pid | (pid, PlagueOfLocusts) <- Map.toList (battleCards bs) ]
           buildMonument bs3
           scoreRegionMajority rid
           bs4 <- doBattleResolution bs3
@@ -240,38 +241,32 @@ doFlood bs =
                 Set.fromList [ loc | (_, loc, _) <- floodInfo ]
             }
 
--- Phase 3: Plague of Locusts — bid, kill losers' non-god figures in region
+-- | Phase 3: Plague of Locusts: bid, kill losers' non-god figures in region
 doPlague :: BattleState -> Interact BattleState
 doPlague bs =
   do
-    let plaguePlayers =
-          [ pid | (pid, PlagueOfLocusts) <- Map.toList (battleCards bs) ]
-    case plaguePlayers of
-      [] -> pure bs
-      _  ->
-        do
-          bids <- placeBids (Set.toList (battlePlayers bs))
-          let bidAmounts  = [ (pid, n) | (pid, AskBid n _) <- Map.toList bids ]
-              maxBid     = maximum (map snd bidAmounts)
-              topBidders = [ pid | (pid, n) <- bidAmounts, n == maxBid ]
-              saved = case topBidders of
+    bids <- placeBids (Set.toList (battlePlayers bs))
+    let bidAmounts  = [ (pid, n) | (pid, AskBid n _) <- Map.toList bids ]
+        maxBid      = maximum (map snd bidAmounts)
+        topBidders  = [ pid | (pid, n) <- bidAmounts, n == maxBid ]
+        saved       = case topBidders of
                         [pid] -> Just pid
                         _     -> Nothing
-              losers = case saved of
+        losers      = case saved of
                          Just winner -> Set.fromList
                            [ pid | (pid, _) <- bidAmounts, pid /= winner ]
                          Nothing -> Set.fromList (map fst bidAmounts)
 
-          -- Plague doesn't respect flood protection
-          bs1 <- killFigures bs losers (battleLocs bs) Set.empty
+    -- Plague doesn't respect flood protection
+    bs1 <- killFigures bs losers (battleLocs bs) Set.empty
 
-          case saved of
-            Just winner ->
-              doLog [ LogPlayer winner, LogText "survived the plague" ]
-            Nothing ->
-              doLog [ LogText "No one survived the plague" ]
+    case saved of
+      Just winner ->
+        doLog [ LogPlayer winner, LogText "survived the plague" ]
+      Nothing ->
+        doLog [ LogText "No one survived the plague" ]
 
-          pure bs1
+    pure bs1
 
 -- Phase 4: Build Monument — each player who played it may place a monument
 buildMonument :: BattleState -> Interact ()
